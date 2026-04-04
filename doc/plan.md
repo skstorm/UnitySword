@@ -4,7 +4,7 @@
 - **장르:** 캐주얼 강화 시뮬레이션
 - **타겟:** 심심풀이 캐주얼 유저
 - **수익 모델:** 광고 (리워드 광고 중심)
-- **기술 스택:** Flutter
+- **기술 스택:** Unity (C#) — 순수 로직: C#, 뷰/연출: Unity
 - **플랫폼:** iOS / Android
 
 ---
@@ -280,8 +280,8 @@
 - 장인 숙련도/경험치: 영구 누적
 - 파편: 영구 누적
 
-- 로컬: SharedPreferences 또는 Hive (빠른 읽기/쓰기, 오프라인 가능)
-- 서버: Firebase (Firestore + Auth 익명 로그인)
+- 로컬: Unity PlayerPrefs + JSON 또는 로컬 파일 저장 (빠른 읽기/쓰기, 오프라인 가능)
+- 서버: Firebase Unity SDK (Firestore + Auth 익명 로그인)
 
 ### 동기화 타이밍
 

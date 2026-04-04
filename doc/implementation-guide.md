@@ -4,121 +4,118 @@
 
 1. **모듈화**: 기능별 독립 모듈 (강화, 랭킹, 칭호, 업적, 광고, 컬렉션, 장인 숙련도, 파편 등). A를 고쳤는데 B에 영향이 가지 않는 구조.
 2. **로직/뷰 분리**: 로직만으로 게임을 돌릴 수 있어야 함. 테스트는 로직만으로 수행.
-3. **뷰 교체 가능**: Flutter View → Unity View 교체를 목표. 로직 레이어에 Flutter 의존성 0.
+3. **뷰 교체 가능**: 순수 C# 로직 레이어에 Unity 의존성 0. 뷰는 Unity에서 담당.
 
 ---
 
 ## 프로젝트 구조
 
 ```
-sword-enhance-game/
-├── packages/
-│   └── game_core/                    ← 순수 Dart 패키지 (Flutter 의존성 없음)
-│       ├── lib/
-│       │   ├── game_core.dart        ★ barrel file — 외부 공개 API 정의 (아래 참조)
-│       │   ├── models/               데이터 모델
-│       │   │   ├── sword.dart
-│       │   │   ├── game_state.dart   세션 상태 (현재 검, 레벨, 수정자 등)
-│       │   │   ├── mastery.dart        장인 숙련도
-│       │   │   ├── fragment.dart     파편
-│       │   │   ├── collection.dart
-│       │   │   ├── achievement.dart
-│       │   │   ├── title.dart        칭호
-│       │   │   ├── ranking.dart
-│       │   │   └── player.dart       유저 데이터 통합 (PlayerData, Statistics, Inventory, AdLimits 등)
+UnitySword/
+├── Assets/
+│   ├── Scripts/
+│   │   ├── GameCore/                    ← 순수 C# 어셈블리 (Unity 의존성 없음, GameCore.asmdef)
+│   │   │   ├── Models/               데이터 모델
+│   │   │   │   ├── Sword.cs
+│   │   │   │   ├── GameState.cs      세션 상태 (현재 검, 레벨, 수정자 등)
+│   │   │   │   ├── Mastery.cs        장인 숙련도
+│   │   │   │   ├── Fragment.cs       파편
+│   │   │   │   ├── Collection.cs
+│   │   │   │   ├── Achievement.cs
+│   │   │   │   ├── Title.cs          칭호
+│   │   │   │   ├── Ranking.cs
+│   │   │   │   └── Player.cs         유저 데이터 통합 (PlayerData, Statistics, Inventory, AdLimits 등)
 │       │   │
-│       │   ├── logic/                게임 로직
-│       │   │   ├── enhance_logic.dart      강화/파괴 핵심 루프
-│       │   │   ├── economy_logic.dart      골드 유입/유출, 판매
-│       │   │   ├── fragment_logic.dart     파편 획득/교환
-│       │   │   ├── mastery_logic.dart        장인 숙련도/경험치
-│       │   │   ├── collection_logic.dart   컬렉션 등록/조회
-│       │   │   ├── achievement_logic.dart  업적 달성 판정
-│       │   │   ├── title_logic.dart        칭호 부여/장착
-│       │   │   ├── ranking_logic.dart      랭킹 산출
-│       │   │   ├── ad_reward_logic.dart    광고 보상 처리 (보호권/골드/부스터)
-│       │   │   └── game_session_logic.dart 세션 관리 (시작/리셋)
+│   │   │   ├── Logic/                게임 로직 (internal — 외부 접근 불가)
+│   │   │   │   ├── EnhanceLogic.cs         강화/파괴 핵심 루프
+│   │   │   │   ├── EconomyLogic.cs         골드 유입/유출, 판매
+│   │   │   │   ├── FragmentLogic.cs        파편 획득/교환
+│   │   │   │   ├── MasteryLogic.cs         장인 숙련도/경험치
+│   │   │   │   ├── CollectionLogic.cs      컬렉션 등록/조회
+│   │   │   │   ├── AchievementLogic.cs     업적 달성 판정
+│   │   │   │   ├── TitleLogic.cs           칭호 부여/장착
+│   │   │   │   ├── RankingLogic.cs         랭킹 산출
+│   │   │   │   ├── AdRewardLogic.cs        광고 보상 처리 (보호권/골드/부스터)
+│   │   │   │   └── GameSessionLogic.cs     세션 관리 (시작/리셋)
 │       │   │
-│       │   ├── repositories/         저장소 인터페이스 (추상)
-│       │   │   ├── storage_repository.dart
-│       │   │   └── ranking_repository.dart
+│   │   │   ├── Repositories/         저장소 인터페이스
+│   │   │   │   ├── IStorageRepository.cs
+│   │   │   │   └── IRankingRepository.cs
 │       │   │
-│       │   ├── commands/              유저 액션 커맨드
-│       │   │   ├── command.dart            커맨드 기본 인터페이스
-│       │   │   ├── enhance_command.dart    강화 시도
-│       │   │   ├── sell_command.dart       판매
-│       │   │   ├── collect_command.dart    수집
-│       │   │   ├── use_item_command.dart   파편 아이템 사용
-│       │   │   ├── exchange_command.dart   파편 교환
-│       │   │   ├── watch_ad_command.dart   광고 시청 (보호권/골드/부스터)
-│       │   │   └── confirm_destroy_command.dart  광고 보호권 거부 시 파괴 확정
+│   │   │   ├── Commands/              유저 액션 커맨드
+│   │   │   │   ├── Command.cs              커맨드 기본 인터페이스
+│   │   │   │   ├── EnhanceCommand.cs       강화 시도
+│   │   │   │   ├── SellCommand.cs          판매
+│   │   │   │   ├── CollectCommand.cs       수집
+│   │   │   │   ├── UseItemCommand.cs       파편 아이템 사용
+│   │   │   │   ├── ExchangeCommand.cs      파편 교환
+│   │   │   │   ├── WatchAdCommand.cs       광고 시청 (보호권/골드/부스터)
+│   │   │   │   └── ConfirmDestroyCommand.cs  광고 보호권 거부 시 파괴 확정
 │       │   │
-│       │   ├── events/               상태 변경 이벤트 (출력)
-│       │   │   ├── game_event.dart         기본 이벤트 인터페이스
-│       │   │   ├── enhance_event.dart      EnhanceSuccessEvent, EnhanceFailEvent
-│       │   │   ├── economy_event.dart      SellEvent, GoldChangeEvent
-│       │   │   ├── fragment_event.dart     FragmentGainEvent, ExchangeEvent, UseItemEvent
-│       │   │   ├── mastery_event.dart        MasteryLevelUpEvent
-│       │   │   ├── collection_event.dart   CollectEvent, CollectionCompleteEvent
-│       │   │   └── ad_event.dart           AdRewardEvent
+│   │   │   ├── Events/               상태 변경 이벤트 (출력)
+│   │   │   │   ├── GameEvent.cs            기본 이벤트 인터페이스
+│   │   │   │   ├── EnhanceEvent.cs         EnhanceSuccessEvent, EnhanceFailEvent
+│   │   │   │   ├── EconomyEvent.cs         SellEvent, GoldChangeEvent
+│   │   │   │   ├── FragmentEvent.cs        FragmentGainEvent, ExchangeEvent, UseItemEvent
+│   │   │   │   ├── MasteryEvent.cs         MasteryLevelUpEvent
+│   │   │   │   ├── CollectionEvent.cs      CollectEvent, CollectionCompleteEvent
+│   │   │   │   └── AdEvent.cs              AdRewardEvent
 │       │   │
-│       │   ├── engine/               게임 엔진
-│       │   │   ├── game_engine.dart        커맨드 수신 → 로직 실행 → 이벤트 발행
-│       │   │   └── session_recorder.dart   커맨드/시드 기록 (리플레이용)
-│       │   │
-│       │   ├── data/                 CSV/JSON 파싱, 밸런스 데이터 로딩
-│       │   │   ├── sword_data_loader.dart
-│       │   │   └── mastery_data_loader.dart   장인 숙련도 테이블 파서
-│       │   │
-│       │   └── util/                 유틸리티
-│       │       ├── time_provider.dart      시간 추상화
-│       │       └── random_provider.dart    난수 추상화 (시드 기반)
-│       │
-│       └── test/                     로직 단위 테스트
-│           ├── enhance_logic_test.dart
-│           ├── economy_logic_test.dart
-│           ├── fragment_logic_test.dart
+│   │   │   ├── Engine/               게임 엔진
+│   │   │   │   ├── GameEngine.cs           커맨드 수신 → 로직 실행 → 이벤트 발행
+│   │   │   │   └── SessionRecorder.cs      커맨드/시드 기록 (리플레이용)
+│   │   │   │
+│   │   │   ├── Data/                 CSV/JSON 파싱, 밸런스 데이터 로딩
+│   │   │   │   ├── SwordDataLoader.cs
+│   │   │   │   └── MasteryDataLoader.cs    장인 숙련도 테이블 파서
+│   │   │   │
+│   │   │   └── Util/                 유틸리티
+│   │   │       ├── ITimeProvider.cs         시간 추상화
+│   │   │       └── IRandomProvider.cs       난수 추상화 (시드 기반)
+│
+│   │   └── App/                      ← Unity 앱 (뷰 + 인프라, App.asmdef)
+│   │       ├── Views/                화면 (MonoBehaviour / UI Toolkit)
+│   │       │   ├── TitleView.cs
+│   │       │   ├── EnhanceView.cs    강화 메인 화면
+│   │       │   ├── WorkshopView.cs   공방 화면
+│   │       │   ├── AchievementView.cs 업적/칭호 화면
+│   │       │   └── Widgets/          공용 UI 컴포넌트
+│   │       │       ├── SwordDisplayWidget.cs
+│   │       │       └── GoldIndicatorWidget.cs
+│   │       │
+│   │       ├── Animations/           연출 모듈 (교체 가능)
+│   │       │   ├── IEnhanceAnimationController.cs  연출 인터페이스
+│   │       │   ├── EnhanceAnimationConfig.cs       단계별 연출 설정 (ScriptableObject)
+│   │       │   ├── BasicEnhanceAnimation.cs        기본 연출 구현체 (P1)
+│   │       │   └── RichEnhanceAnimation.cs         고도화 연출 구현체 (P4)
+│   │       │
+│   │       ├── Bindings/             GameCore ↔ Unity 연결
+│   │       │   └── GameBinding.cs    DI 설정 (VContainer 또는 수동 DI)
+│   │       │
+│   │       ├── Repositories/         저장소 구현체
+│   │       │   ├── LocalStorageRepository.cs   로컬 저장 (JSON 파일)
+│   │       │   └── FirebaseRepository.cs       Firebase Unity SDK
+│   │       │
+│   │       ├── Services/             인프라 서비스
+│   │       │   ├── AdService.cs      Unity Ads / AdMob 연동
+│   │       │   ├── PushService.cs    푸시 알림
+│   │       │   └── AuthService.cs    Firebase 인증
+│   │       │
+│   │       └── GameMain.cs           엔트리포인트 (MonoBehaviour)
+│   │
+│   ├── Resources/
+│   │   └── Data/
+│   │       ├── swords.csv
+│   │       └── mastery_levels.csv
+│   │
+│   └── Tests/
+│       └── EditMode/                 로직 단위 테스트 (NUnit)
+│           ├── EnhanceLogicTest.cs
+│           ├── EconomyLogicTest.cs
+│           ├── FragmentLogicTest.cs
 │           └── ...
 │
-├── app_flutter/                      ← Flutter 앱 (뷰 + 인프라)
-│   ├── lib/
-│   │   ├── views/                    화면 위젯
-│   │   │   ├── title_view.dart
-│   │   │   ├── enhance_view.dart     강화 메인 화면
-│   │   │   ├── workshop_view.dart       공방 화면
-│   │   │   ├── achievement_view.dart 업적/칭호 화면
-│   │   │   └── widgets/              공용 위젯
-│   │   │       ├── sword_display_widget.dart
-│   │   │       └── gold_indicator_widget.dart
-│   │   │
-│   │   ├── animations/               연출 모듈 (교체 가능)
-│   │   │   ├── enhance_animation_controller.dart   연출 인터페이스
-│   │   │   ├── enhance_animation_config.dart       단계별 연출 설정 데이터
-│   │   │   ├── enhance_animation_widget.dart       연출을 렌더링하는 Flutter 위젯 (컨트롤러를 사용)
-│   │   │   ├── basic_enhance_animation.dart        기본 연출 구현체 (P1)
-│   │   │   └── rich_enhance_animation.dart         고도화 연출 구현체 (P4)
-│   │   │
-│   │   ├── bindings/                 game_core ↔ Flutter 연결
-│   │   │   └── game_binding.dart     상태관리 (Provider/Riverpod 등)
-│   │   │
-│   │   ├── repositories/            저장소 구현체
-│   │   │   ├── hive_storage_repository.dart
-│   │   │   └── firebase_repository.dart
-│   │   │
-│   │   ├── services/                인프라 서비스
-│   │   │   ├── ad_service.dart       AdMob 연동
-│   │   │   ├── push_service.dart     푸시 알림
-│   │   │   └── auth_service.dart     Firebase 인증
-│   │   │
-│   │   └── main.dart
-│   │
-│   └── assets/
-│       ├── data/
-│       │   ├── swords.csv
-│       │   └── mastery_levels.csv
-│       └── images/
-│
-└── (미래) app_unity/                 ← Unity 뷰 (game_core를 C#로 포팅)
+└── doc/
 ```
 
 ---
@@ -127,17 +124,17 @@ sword-enhance-game/
 
 | 분류 | 접미사 | 예시 | 설명 |
 |------|--------|------|------|
-| 로직 | `_logic.dart` | `enhance_logic.dart` | 게임 규칙, 계산, 판정 |
-| 커맨드 | `_command.dart` | `enhance_command.dart` | 유저 액션 정의 (입력) |
-| 이벤트 | `_event.dart` | `game_event.dart` | 상태 변경 알림 (출력) |
-| 엔진 | 접미사 없음 | `game_engine.dart` | 커맨드 수신 → 로직 실행 → 이벤트 발행 |
-| 뷰 | `_view.dart` | `enhance_view.dart` | 화면 위젯, UI 렌더링 |
-| 뷰 부품 | `_widget.dart` | `sword_display_widget.dart` | 재사용 가능한 UI 컴포넌트 |
-| 모델 | 접미사 없음 | `sword.dart` | 데이터 구조 정의 |
-| 리포지토리 | `_repository.dart` | `storage_repository.dart` | 저장소 인터페이스/구현 |
-| 서비스 | `_service.dart` | `ad_service.dart` | 외부 API 통신, 인프라 |
-| 유틸리티 | `_provider.dart` 등 | `time_provider.dart` | 추상화, 헬퍼 |
-| 테스트 | `_test.dart` | `enhance_logic_test.dart` | 테스트 코드 |
+| 로직 | `Logic.cs` | `EnhanceLogic.cs` | 게임 규칙, 계산, 판정 (internal) |
+| 커맨드 | `Command.cs` | `EnhanceCommand.cs` | 유저 액션 정의 (입력) |
+| 이벤트 | `Event.cs` | `GameEvent.cs` | 상태 변경 알림 (출력) |
+| 엔진 | 접미사 없음 | `GameEngine.cs` | 커맨드 수신 → 로직 실행 → 이벤트 발행 |
+| 뷰 | `View.cs` | `EnhanceView.cs` | 화면 UI, MonoBehaviour |
+| 뷰 부품 | `Widget.cs` | `SwordDisplayWidget.cs` | 재사용 가능한 UI 컴포넌트 |
+| 모델 | 접미사 없음 | `Sword.cs` | 데이터 구조 정의 |
+| 리포지토리 | `Repository.cs` | `IStorageRepository.cs` | 저장소 인터페이스/구현 |
+| 서비스 | `Service.cs` | `AdService.cs` | 외부 API 통신, 인프라 |
+| 유틸리티 | `Provider.cs` 등 | `ITimeProvider.cs` | 추상화, 헬퍼 (인터페이스는 I 접두사) |
+| 테스트 | `Test.cs` | `EnhanceLogicTest.cs` | NUnit 테스트 코드 |
 
 ---
 
@@ -150,94 +147,66 @@ Logic → View:  조정 O (이벤트로 뷰를 움직임) / 보기 X (뷰의 존
 View → Logic:  보기 O (상태를 읽을 수 있음)   / 조정 X (직접 조작 불가)
 ```
 
-### 로직 (`game_core`)
-- **Flutter import 금지** — `dart:core`, `dart:async`, `dart:math`, `dart:convert`만 허용
-- 모든 외부 의존성은 인터페이스(추상 클래스)로 주입
-- 상태 변경은 이벤트 스트림으로 외부에 알림
+### 로직 (`GameCore` 어셈블리)
+- **UnityEngine import 금지** — `System`, `System.Collections.Generic`, `System.Linq` 등 순수 .NET 네임스페이스만 허용
+- 모든 외부 의존성은 인터페이스로 주입
+- 상태 변경은 이벤트(`event Action<GameEvent>`)로 외부에 알림
 - View 레이어의 존재를 모름 — 이벤트를 발행할 뿐, 누가 구독하는지 관심 없음
 
-### 뷰 (`app_flutter`)
-- **상태 읽기만 가능** — `engine.state`, `engine.events` 스트림으로 관찰
-- **조작은 Command로만** — `engine.dispatch(Command)` 이외의 경로로 로직을 변경할 수 없음
+### 뷰 (`App` 어셈블리 — Unity)
+- **상태 읽기만 가능** — `engine.State`, `engine.OnEvent` 이벤트로 관찰
+- **조작은 Command로만** — `engine.Dispatch(Command)` 이외의 경로로 로직을 변경할 수 없음
 - 뷰에 게임 규칙 판정 코드 없음 (예: 확률 계산, 골드 차감 등)
-- **Logic 클래스 직접 import 금지** — barrel file로 구조적 강제 (아래 참조)
+- **Logic 클래스 직접 접근 금지** — `internal` 접근 제한자 + Assembly Definition으로 구조적 강제 (아래 참조)
 
-### barrel file (`game_core.dart`) — 외부 공개 API 제어
+### Assembly Definition (`GameCore.asmdef`) — 외부 공개 API 제어
 
-`app_flutter`는 `import 'package:game_core/game_core.dart'`로만 접근. Logic 클래스는 export하지 않아 뷰에서 직접 호출 불가.
+`App` 어셈블리는 `GameCore` 어셈블리를 참조. Logic 클래스는 `internal`로 선언되어 외부에서 접근 불가.
 
-```dart
-// packages/game_core/lib/game_core.dart
+```
+// GameCore.asmdef — Unity Assembly Definition
+// GameCore 어셈블리는 UnityEngine을 참조하지 않음 (순수 C#)
 
-// ✅ 외부 공개 — 뷰가 사용하는 것들
-export 'models/sword.dart';
-export 'models/game_state.dart';
-export 'models/player.dart';
-export 'models/mastery.dart';
-export 'models/fragment.dart';
-export 'models/collection.dart';
-export 'models/achievement.dart';
-export 'models/title.dart';
-export 'models/ranking.dart';
+// ✅ public — 뷰(App 어셈블리)가 사용하는 것들
+//   namespace GameCore.Models      → Sword, GameState, PlayerData, Mastery 등
+//   namespace GameCore.Commands    → EnhanceCommand, SellCommand 등
+//   namespace GameCore.Events      → GameEvent, EnhanceSuccessEvent 등
+//   namespace GameCore.Engine      → GameEngine, SessionRecorder
+//   namespace GameCore.Repositories → IStorageRepository, IRankingRepository
+//   namespace GameCore.Data        → SwordDataLoader, MasteryDataLoader
+//   namespace GameCore.Util        → IRandomProvider, ITimeProvider
 
-export 'commands/command.dart';
-export 'commands/enhance_command.dart';
-export 'commands/sell_command.dart';
-export 'commands/collect_command.dart';
-export 'commands/use_item_command.dart';
-export 'commands/exchange_command.dart';
-export 'commands/watch_ad_command.dart';
-export 'commands/confirm_destroy_command.dart';
-
-export 'events/game_event.dart';
-export 'events/enhance_event.dart';
-export 'events/economy_event.dart';
-export 'events/fragment_event.dart';
-export 'events/mastery_event.dart';
-export 'events/collection_event.dart';
-export 'events/ad_event.dart';
-
-export 'engine/game_engine.dart';
-export 'engine/session_recorder.dart';
-
-export 'repositories/storage_repository.dart';
-export 'repositories/ranking_repository.dart';
-
-export 'data/sword_data_loader.dart';
-export 'data/mastery_data_loader.dart';
-
-export 'util/time_provider.dart';
-export 'util/random_provider.dart';
-
-// ❌ 비공개 — Logic 클래스는 export하지 않음
-// logic/enhance_logic.dart      → Command 내부에서만 사용
-// logic/economy_logic.dart      → Command 내부에서만 사용
-// logic/fragment_logic.dart     → Command 내부에서만 사용
-// logic/mastery_logic.dart      → Command 내부에서만 사용
-// logic/collection_logic.dart   → Command 내부에서만 사용
-// logic/achievement_logic.dart  → Command 내부에서만 사용
-// logic/title_logic.dart        → Command 내부에서만 사용
-// logic/ranking_logic.dart      → Command 내부에서만 사용
-// logic/ad_reward_logic.dart    → Command 내부에서만 사용
-// logic/game_session_logic.dart → Command 내부에서만 사용
+// ❌ internal — Logic 클래스는 외부 접근 불가
+//   namespace GameCore.Logic (모든 클래스가 internal)
+//     internal class EnhanceLogic   → Command 내부에서만 사용
+//     internal class EconomyLogic   → Command 내부에서만 사용
+//     internal class FragmentLogic  → Command 내부에서만 사용
+//     internal class MasteryLogic   → Command 내부에서만 사용
+//     internal class CollectionLogic → Command 내부에서만 사용
+//     internal class AchievementLogic → Command 내부에서만 사용
+//     internal class TitleLogic     → Command 내부에서만 사용
+//     internal class RankingLogic   → Command 내부에서만 사용
+//     internal class AdRewardLogic  → Command 내부에서만 사용
+//     internal class GameSessionLogic → Command 내부에서만 사용
 ```
 
 **이 구조가 강제하는 것:**
-- `app_flutter`에서 `import 'package:game_core/logic/enhance_logic.dart'` → **컴파일 에러** (Dart 패키지 export 규칙)
-- 뷰는 Command 객체를 생성하여 `engine.dispatch()`에 넘기는 것만 가능
-- Logic 클래스는 `game_core` 내부(Command, 테스트)에서만 접근 가능
+- `App` 어셈블리에서 `GameCore.Logic.EnhanceLogic`에 접근 → **컴파일 에러** (C# `internal` 접근 제한자)
+- 뷰는 Command 객체를 생성하여 `engine.Dispatch()`에 넘기는 것만 가능
+- Logic 클래스는 `GameCore` 어셈블리 내부(Command, 테스트)에서만 접근 가능
+- 테스트 어셈블리에서 internal 접근이 필요하면 `[InternalsVisibleTo("Tests")]` 어트리뷰트 사용
 
 **결과:** "뷰가 로직을 볼 수는 있지만 조정할 수 없다"가 **컨벤션이 아닌 컴파일 타임에 강제**됨.
 
 ### 통신 방향
 ```
-뷰 → Command 생성 → GameEngine.dispatch() → Command가 Logic 조합 → 상태 갱신
-로직 → GameEvent 스트림 → 뷰가 구독하여 UI 반영
+뷰 → Command 생성 → GameEngine.Dispatch() → Command가 Logic 조합 → 상태 갱신
+로직 → event Action<GameEvent> → 뷰가 구독하여 UI 반영
 
 예시:
-  뷰: engine.dispatch(EnhanceCommand())
-  엔진: EnhanceCommand.execute() 내부에서 Logic 순차 호출 → 이벤트 발행
-  뷰: 이벤트 구독하여 성공 이펙트 or 파괴 애니메이션 재생
+  뷰: engine.Dispatch(new EnhanceCommand())
+  엔진: EnhanceCommand.Execute() 내부에서 Logic 순차 호출 → 이벤트 발행
+  뷰: OnEvent 구독하여 성공 이펙트 or 파괴 애니메이션 재생
 ```
 
 ---
@@ -272,24 +241,27 @@ export 'util/random_provider.dart';
 
 ### 커맨드 인터페이스
 
-```dart
-abstract class Command {
-  final int timestamp;  // 리플레이용 실행 시점 (클라이언트 밀리초, monotonic)
-  CommandResult execute(GameState state, GameContext context);
+```csharp
+public abstract class Command
+{
+    public int Timestamp { get; }  // 리플레이용 실행 시점 (클라이언트 밀리초, monotonic)
+    public abstract CommandResult Execute(GameState state, GameContext context);
 }
 
 /// 커맨드 실행 결과 — 새로운 상태 + 발생한 이벤트 목록
-class CommandResult {
-  final GameState newState;       // 커맨드 실행 후 갱신된 상태
-  final List<GameEvent> events;   // 이번 커맨드로 발생한 이벤트들 (뷰/리스너에 전달)
+public class CommandResult
+{
+    public GameState NewState { get; }        // 커맨드 실행 후 갱신된 상태
+    public List<GameEvent> Events { get; }    // 이번 커맨드로 발생한 이벤트들
 }
 
 /// 커맨드 실행에 필요한 외부 의존성 묶음
-class GameContext {
-  final RandomProvider random;
-  final TimeProvider time;
-  final SwordDataTable swordTable;   // CSV에서 로딩된 검 데이터 테이블
-  final MasteryLevelTable masteryTable;  // CSV에서 로딩된 장인 숙련도 테이블
+public class GameContext
+{
+    public IRandomProvider Random { get; }
+    public ITimeProvider Time { get; }
+    public SwordDataTable SwordTable { get; }       // CSV에서 로딩된 검 데이터 테이블
+    public MasteryLevelTable MasteryTable { get; }  // CSV에서 로딩된 장인 숙련도 테이블
 }
 ```
 
@@ -301,22 +273,24 @@ class GameContext {
 
 커맨드는 실행 전에 유효성을 검증한다. 유효하지 않은 커맨드는 상태 변경 없이 에러 이벤트를 반환.
 
-```dart
-abstract class Command {
-  final int timestamp;
+```csharp
+public abstract class Command
+{
+    public int Timestamp { get; }
 
-  /// 유효성 검증 — 실행 가능 여부를 사전 판단
-  /// null이면 유효, 문자열이면 거부 사유
-  String? validate(GameState state, GameContext context);
+    /// 유효성 검증 — 실행 가능 여부를 사전 판단
+    /// null이면 유효, 문자열이면 거부 사유
+    public abstract string Validate(GameState state, GameContext context);
 
-  /// 실행 — validate() 통과 후에만 호출됨
-  CommandResult execute(GameState state, GameContext context);
+    /// 실행 — Validate() 통과 후에만 호출됨
+    public abstract CommandResult Execute(GameState state, GameContext context);
 }
 
 /// 유효하지 않은 커맨드 시도 시 발행되는 이벤트
-class CommandRejectedEvent extends GameEvent {
-  final String commandType;  // 거부된 커맨드 타입명
-  final String reason;       // 거부 사유
+public class CommandRejectedEvent : GameEvent
+{
+    public string CommandType { get; }  // 거부된 커맨드 타입명
+    public string Reason { get; }       // 거부 사유
 }
 ```
 
@@ -340,148 +314,134 @@ class CommandRejectedEvent extends GameEvent {
 
 ### GameEngine
 
-```dart
-class GameEngine {
-  GameState _state;
-  final GameContext _context;
-  final SessionRecorder? _recorder;  // P3에서 구현, P0~P1에서는 null
+```csharp
+public class GameEngine
+{
+    private GameState _state;
+    private readonly GameContext _context;
+    private readonly SessionRecorder _recorder;  // P3에서 구현, P0~P1에서는 null
 
-  // 외부 리스너 등록 가능 (동기화, 업적 체크 등)
-  final StreamController<GameEvent> _eventController =
-      StreamController<GameEvent>.broadcast();
-  Stream<GameEvent> get events => _eventController.stream;
+    // 외부 리스너 등록 가능 (동기화, 업적 체크 등)
+    public event Action<GameEvent> OnEvent;
 
-  GameState get state => _state;
+    public GameState State => _state;
 
-  void dispatch(Command command) {
-    // 1. 유효성 검증 — 실행 불가 시 에러 이벤트만 발행하고 종료
-    final rejection = command.validate(_state, _context);
-    if (rejection != null) {
-      _eventController.add(CommandRejectedEvent(
-        commandType: command.runtimeType.toString(),
-        reason: rejection,
-      ));
-      return;
+    public void Dispatch(Command command)
+    {
+        // 1. 유효성 검증 — 실행 불가 시 에러 이벤트만 발행하고 종료
+        var rejection = command.Validate(_state, _context);
+        if (rejection != null)
+        {
+            OnEvent?.Invoke(new CommandRejectedEvent(
+                command.GetType().Name, rejection));
+            return;
+        }
+
+        // 2. 커맨드 기록 (리플레이용, P3에서 활성화)
+        _recorder?.Record(command);
+
+        // 3. 로직 실행 — GameContext를 통해 난수/시간 접근
+        var result = command.Execute(_state, _context);
+
+        // 4. 상태 갱신
+        _state = result.NewState;
+
+        // 5. 이벤트 발행 (delegate — 뷰, 동기화, 업적 등 다중 구독 가능)
+        foreach (var evt in result.Events)
+        {
+            OnEvent?.Invoke(evt);
+        }
     }
-
-    // 2. 커맨드 기록 (리플레이용, P3에서 활성화)
-    //    validate 통과한 커맨드만 기록 — 리플레이 시 rejected 커맨드는 재생 불필요
-    _recorder?.record(command);
-
-    // 3. 로직 실행 — GameContext를 통해 난수/시간 접근
-    final result = command.execute(_state, _context);
-
-    // 4. 상태 갱신
-    _state = result.newState;
-
-    // 5. 이벤트 발행 (broadcast — 뷰, 동기화, 업적 등 다중 구독 가능)
-    for (final event in result.events) {
-      _eventController.add(event);
-    }
-  }
 }
 ```
 
-- `broadcast` 스트림으로 다중 리스너 지원 → P2에서 동기화/업적 리스너 추가 가능
+- `event Action<GameEvent>`로 다중 리스너 지원 → P2에서 동기화/업적 리스너 추가 가능
 - `SessionRecorder`는 P0~P1에서 null, P3에서 구현 후 주입
-- **validate 통과한 커맨드만 기록** → 리플레이 데이터에 불필요한 reject 커맨드가 쌓이지 않음
+- **Validate 통과한 커맨드만 기록** → 리플레이 데이터에 불필요한 reject 커맨드가 쌓이지 않음
 
 ### EnhanceCommand 내부 로직 조합
 
 Command는 여러 Logic의 순수 함수를 순차 호출하여 결과를 조합한다. 각 Logic은 서로를 모르고, Command만이 조합 순서를 안다.
 
-```dart
-class EnhanceCommand extends Command {
-  // Logic 인스턴스는 GameContext 또는 생성자에서 주입
-  // (Logic이 순수 함수이므로 싱글턴으로 재사용 가능)
-
-  @override
-  String? validate(GameState state, GameContext context) {
-    if (state.pendingAdProtection) return 'pending_ad_protection';
-    final cost = _getEnhanceCost(state, context);
-    if (!EconomyLogic().canAfford(state, cost)) return 'insufficient_gold';
-    return null;
-  }
-
-  @override
-  CommandResult execute(GameState state, GameContext context) {
-    final events = <GameEvent>[];
-    var s = state;
-
-    // 1. 강화 비용 산출 (장인 숙련도 할인 적용)
-    final baseCost = context.swordTable.getSword(s.currentLevel + 1)!.enhanceCost;
-    final discount = context.masteryTable.getLevel(s.playerData.mastery.level).costDiscount;
-    final cost = (baseCost * (1 - discount)).floor();
-
-    // 2. 골드 차감
-    final spendResult = EconomyLogic().spendGold(s, cost);
-    s = spendResult.newState;
-    events.addAll(spendResult.events);
-
-    // 3. 확률 판정
-    final enhanceLogic = EnhanceLogic();
-    final targetSword = context.swordTable.getSword(s.currentLevel + 1)!;
-    final rate = enhanceLogic.getEffectiveRate(s, targetSword);
-    final success = enhanceLogic.roll(rate, context.random);
-
-    // 4. 성공/실패 분기
-    if (success) {
-      // 4a. 성공 — 레벨업
-      final successResult = enhanceLogic.handleSuccess(s, targetSword, context.swordTable);
-      s = successResult.newState;
-      events.addAll(successResult.events);
-
-      // 4b. 통계 갱신 — 연속 성공, 최고 레벨 등
-      s = _updateStatsOnSuccess(s);
-    } else {
-      // 4c. 실패 — 파괴 또는 보호
-      final failResult = enhanceLogic.handleFail(s, context.swordTable, context);
-      s = failResult.newState;
-      events.addAll(failResult.events);
-
-      // 4d. 실제 파괴인 경우 (보호 부적이 없었고, 광고 보호권도 미사용 대기가 아닌 경우)
-      //     → 파편 지급 + 나무검 리셋은 ConfirmDestroyCommand에서 처리
-      //     → pendingAdProtection=true면 여기서 멈춤 (유저 선택 대기)
-      //     → pendingAdProtection=false면 (광고 보호권 자격 없음) 즉시 파괴 확정
-      if (!s.pendingAdProtection && !s.hasActiveProtection) {
-        final destroyResult = _finalizeDestroy(s, context);
-        s = destroyResult.newState;
-        events.addAll(destroyResult.events);
-      }
-
-      // 4e. 통계 갱신 — 연속 파괴, 총 파괴 횟수 등
-      s = _updateStatsOnFail(s);
+```csharp
+public class EnhanceCommand : Command
+{
+    public override string Validate(GameState state, GameContext context)
+    {
+        if (state.PendingAdProtection) return "pending_ad_protection";
+        var cost = GetEnhanceCost(state, context);
+        if (!new EconomyLogic().CanAfford(state, cost)) return "insufficient_gold";
+        return null;
     }
 
-    // 5. 장인 숙련도 경험치 +1 (성공/실패 무관)  [P2에서 활성화]
-    // final masteryResult = MasteryLogic().addExp(s, context.masteryTable);
-    // s = masteryResult.newState;
-    // events.addAll(masteryResult.events);
+    public override CommandResult Execute(GameState state, GameContext context)
+    {
+        var events = new List<GameEvent>();
+        var s = state;
 
-    // 6. 업적 체크  [P3에서 활성화]
-    // final achievementResult = AchievementLogic().check(s);
-    // s = achievementResult.newState;
-    // events.addAll(achievementResult.events);
+        // 1. 강화 비용 산출 (장인 숙련도 할인 적용)
+        var baseCost = context.SwordTable.GetSword(s.CurrentLevel + 1).EnhanceCost;
+        var discount = context.MasteryTable.GetLevel(s.PlayerData.Mastery.Level).CostDiscount;
+        var cost = (int)(baseCost * (1 - discount));
 
-    return CommandResult(newState: s, events: events);
-  }
+        // 2. 골드 차감
+        var spendResult = new EconomyLogic().SpendGold(s, cost);
+        s = spendResult.NewState;
+        events.AddRange(spendResult.Events);
 
-  /// 파괴 확정 처리 (광고 보호권 자격 없는 경우 즉시 실행)
-  LogicResult _finalizeDestroy(GameState state, GameContext context) {
-    final events = <GameEvent>[];
-    var s = state;
+        // 3. 확률 판정
+        var enhanceLogic = new EnhanceLogic();
+        var targetSword = context.SwordTable.GetSword(s.CurrentLevel + 1);
+        var rate = enhanceLogic.GetEffectiveRate(s, targetSword);
+        var success = enhanceLogic.Roll(rate, context.Random);
 
-    // 파편 지급  [P2에서 활성화]
-    // final fragmentBonus = context.masteryTable.getLevel(s.playerData.mastery.level).fragmentBonus;
-    // final fragResult = FragmentLogic().giveFragments(s, s.currentLevel, fragmentBonus);
-    // s = fragResult.newState;
-    // events.addAll(fragResult.events);
+        // 4. 성공/실패 분기
+        if (success)
+        {
+            var successResult = enhanceLogic.HandleSuccess(s, targetSword, context.SwordTable);
+            s = successResult.NewState;
+            events.AddRange(successResult.Events);
+            s = UpdateStatsOnSuccess(s);
+        }
+        else
+        {
+            var failResult = enhanceLogic.HandleFail(s, context.SwordTable, context);
+            s = failResult.NewState;
+            events.AddRange(failResult.Events);
 
-    // 나무검 리셋
-    s = GameSessionLogic().resetToWoodenSword(s, context.swordTable);
+            if (!s.PendingAdProtection && !s.HasActiveProtection)
+            {
+                var destroyResult = FinalizeDestroy(s, context);
+                s = destroyResult.NewState;
+                events.AddRange(destroyResult.Events);
+            }
+            s = UpdateStatsOnFail(s);
+        }
 
-    return LogicResult(s, events);
-  }
+        // 5. 장인 숙련도 경험치 +1 (성공/실패 무관)  [P2에서 활성화]
+        // var masteryResult = new MasteryLogic().AddExp(s, context.MasteryTable);
+        // s = masteryResult.NewState; events.AddRange(masteryResult.Events);
+
+        // 6. 업적 체크  [P3에서 활성화]
+        // var achievementResult = new AchievementLogic().Check(s);
+        // s = achievementResult.NewState; events.AddRange(achievementResult.Events);
+
+        return new CommandResult(s, events);
+    }
+
+    private LogicResult FinalizeDestroy(GameState state, GameContext context)
+    {
+        var events = new List<GameEvent>();
+        var s = state;
+
+        // 파편 지급  [P2에서 활성화]
+        // var fragmentBonus = context.MasteryTable.GetLevel(s.PlayerData.Mastery.Level).FragmentBonus;
+        // var fragResult = new FragmentLogic().GiveFragments(s, s.CurrentLevel, fragmentBonus);
+        // s = fragResult.NewState; events.AddRange(fragResult.Events);
+
+        s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);
+        return new LogicResult(s, events);
+    }
 }
 ```
 
@@ -501,28 +461,27 @@ class EnhanceCommand extends Command {
 
 ### 리플레이 데이터
 
-```dart
-class SessionRecord {
-  final int randomSeed;           // 세션 시작 시 랜덤 시드
-  final DateTime startTime;       // 세션 시작 시각 (TimeProvider 재현용)
-  final GameState initialState;   // 세션 시작 시 상태 스냅샷
-  final List<Command> commands;   // 커맨드 시퀀스 (타임스탬프 포함)
+```csharp
+public class SessionRecord
+{
+    public int RandomSeed { get; }            // 세션 시작 시 랜덤 시드
+    public DateTime StartTime { get; }        // 세션 시작 시각 (ITimeProvider 재현용)
+    public GameState InitialState { get; }    // 세션 시작 시 상태 스냅샷
+    public List<Command> Commands { get; }    // 커맨드 시퀀스 (타임스탬프 포함)
 }
 
-/// 리플레이 전용 TimeProvider — startTime + command.timestamp로 시각 재현
-class ReplayTimeProvider implements TimeProvider {
-  final DateTime _startTime;
-  int _currentTimestamp = 0;
+/// 리플레이 전용 ITimeProvider — StartTime + command.Timestamp로 시각 재현
+public class ReplayTimeProvider : ITimeProvider
+{
+    private readonly DateTime _startTime;
+    private int _currentTimestamp = 0;
 
-  ReplayTimeProvider(this._startTime);
+    public ReplayTimeProvider(DateTime startTime) => _startTime = startTime;
 
-  /// SessionRecorder가 각 커맨드 dispatch 전에 호출하여 시각 동기화
-  void syncTo(int commandTimestamp) {
-    _currentTimestamp = commandTimestamp;
-  }
+    /// SessionRecorder가 각 커맨드 Dispatch 전에 호출하여 시각 동기화
+    public void SyncTo(int commandTimestamp) => _currentTimestamp = commandTimestamp;
 
-  @override
-  DateTime now() => _startTime.add(Duration(milliseconds: _currentTimestamp));
+    public DateTime Now() => _startTime.AddMilliseconds(_currentTimestamp);
 }
 ```
 
@@ -552,11 +511,12 @@ class ReplayTimeProvider implements TimeProvider {
 
 ### 저장소 (Repository 패턴 + 저장 모드)
 
-```dart
-// game_core (인터페이스만)
-abstract class StorageRepository {
-  Future<PlayerData> load();
-  Future<void> save(PlayerData data);
+```csharp
+// GameCore (인터페이스만)
+public interface IStorageRepository
+{
+    Task<PlayerData> LoadAsync();
+    Task SaveAsync(PlayerData data);
 }
 ```
 
@@ -565,72 +525,76 @@ abstract class StorageRepository {
 | 구현체 | 용도 | 설명 |
 |--------|------|------|
 | `InMemoryRepository` | 테스트 | 메모리에만 저장, 앱 종료 시 소멸 |
-| `HiveStorageRepository` | 로컬 모드 | Hive로 로컬 저장, 서버 통신 없음 |
-| `SyncedRepository` | 서버 모드 | Hive(로컬) + Firebase(서버) 동기화 |
+| `LocalStorageRepository` | 로컬 모드 | JSON 파일로 로컬 저장, 서버 통신 없음 |
+| `SyncedRepository` | 서버 모드 | 로컬 파일 + Firebase 동기화 |
 
 **저장 모드 전환:**
 
-```dart
-enum StorageMode { test, local, server }
+```csharp
+public enum StorageMode { Test, Local, Server }
 
-// main.dart 또는 환경 설정에서 모드 선택
-StorageRepository createRepository(StorageMode mode) {
-  switch (mode) {
-    case StorageMode.test:   return InMemoryRepository();
-    case StorageMode.local:  return HiveStorageRepository();
-    case StorageMode.server: return SyncedRepository(
-      local: HiveStorageRepository(),
-      remote: FirebaseRepository(),
-    );
-  }
-}
+// GameMain.cs 또는 DI 설정에서 모드 선택
+public static IStorageRepository CreateRepository(StorageMode mode) => mode switch
+{
+    StorageMode.Test   => new InMemoryRepository(),
+    StorageMode.Local  => new LocalStorageRepository(),
+    StorageMode.Server => new SyncedRepository(
+        new LocalStorageRepository(), new FirebaseRepository()),
+    _ => throw new ArgumentException(nameof(mode))
+};
 ```
 
 - **개발/테스트**: `local` 또는 `test` 모드 → Firebase 없이 동작
 - **배포**: `server` 모드 → 로컬 저장 + Firebase 동기화
-- 로직(`game_core`)은 `StorageRepository` 인터페이스만 알면 됨 — 모드에 무관
+- 로직(`GameCore`)은 `IStorageRepository` 인터페이스만 알면 됨 — 모드에 무관
 - 모드 전환은 **DI(의존성 주입) 시점에 구현체만 교체** — 코드 수정 없음
 
 **SyncedRepository 동작:**
 ```
-save() → Hive에 즉시 저장 → Firebase에 비동기 업로드
-load() → 앱 시작 시 Firebase에서 최신 데이터 pull → Hive에 반영 → Hive에서 읽기
+Save() → 로컬 파일에 즉시 저장 → Firebase에 비동기 업로드
+Load() → 앱 시작 시 Firebase에서 최신 데이터 pull → 로컬에 반영 → 로컬에서 읽기
 ```
-- 평상시에는 Hive에서 읽기 (빠름)
+- 평상시에는 로컬에서 읽기 (빠름)
 - 동기화 실패 시 로컬 데이터 유지, 복귀 시 재동기화
 
 ### 시간 추상화
-```dart
-// game_core
-abstract class TimeProvider {
-  DateTime now();
+```csharp
+// GameCore
+public interface ITimeProvider
+{
+    DateTime Now();
 }
 
-// app_flutter
-class RealTimeProvider implements TimeProvider {
-  DateTime now() => DateTime.now();
+// App (Unity)
+public class RealTimeProvider : ITimeProvider
+{
+    public DateTime Now() => DateTime.Now;
 }
 
 // 테스트 — 일일 제한(보호권 2회) 등 시간 의존 로직 테스트 가능
-class FakeTimeProvider implements TimeProvider {
-  DateTime _now;
-  DateTime now() => _now;
-  void advance(Duration d) => _now = _now.add(d);
+public class FakeTimeProvider : ITimeProvider
+{
+    private DateTime _now;
+    public FakeTimeProvider(DateTime initial) => _now = initial;
+    public DateTime Now() => _now;
+    public void Advance(TimeSpan d) => _now = _now.Add(d);
 }
 ```
 
 ### 난수 추상화
-```dart
-// game_core
-abstract class RandomProvider {
-  double nextDouble(); // 0.0 ~ 1.0
+```csharp
+// GameCore
+public interface IRandomProvider
+{
+    double NextDouble(); // 0.0 ~ 1.0
 }
 
 // 테스트 — 강화 성공/실패를 결정적으로 테스트 가능
-class FakeRandomProvider implements RandomProvider {
-  double _value;
-  double nextDouble() => _value;
-  void setNext(double v) => _value = v;
+public class FakeRandomProvider : IRandomProvider
+{
+    private double _value;
+    public double NextDouble() => _value;
+    public void SetNext(double v) => _value = v;
 }
 ```
 
@@ -674,153 +638,122 @@ class FakeRandomProvider implements RandomProvider {
 3. **사이드이펙트 없음**: 콜백, 스트림, 외부 상태 변경 금지
 4. **다른 Logic 호출 금지**: Logic끼리 직접 호출하지 않음. 조합은 Command의 책임
 
-```dart
+```csharp
 /// 모든 Logic의 반환 타입
-class LogicResult {
-  final GameState newState;
-  final List<GameEvent> events;
-  LogicResult(this.newState, [this.events = const []]);
+public class LogicResult
+{
+    public GameState NewState { get; }
+    public List<GameEvent> Events { get; }
+    public LogicResult(GameState newState, List<GameEvent> events = null)
+    {
+        NewState = newState;
+        Events = events ?? new List<GameEvent>();
+    }
 }
 ```
 
 ### Logic 순수 함수 예시
 
-```dart
-/// enhance_logic.dart — 순수 함수, 사이드이펙트 없음
-class EnhanceLogic {
-  /// 확률 판정 (수정자 적용 포함)
-  double getEffectiveRate(GameState state, Sword targetSword) {
-    double rate = targetSword.successRate;
-    for (final modifier in state.activeModifiers) {
-      rate = modifier.apply(rate);
+```csharp
+/// EnhanceLogic.cs — internal 순수 함수, 사이드이펙트 없음
+internal class EnhanceLogic
+{
+    public double GetEffectiveRate(GameState state, Sword targetSword)
+    {
+        double rate = targetSword.SuccessRate;
+        foreach (var modifier in state.ActiveModifiers)
+            rate = modifier.Apply(rate);
+        return Math.Clamp(rate, 0.0, 1.0);
     }
-    return rate.clamp(0.0, 1.0);
-  }
 
-  /// 강화 판정 — 성공/실패 여부만 반환 (상태 변경은 Command에서 처리)
-  bool roll(double effectiveRate, RandomProvider random) {
-    return random.nextDouble() < effectiveRate;
-  }
+    public bool Roll(double effectiveRate, IRandomProvider random)
+        => random.NextDouble() < effectiveRate;
 
-  /// 성공 시 레벨업 — 새 상태 + 이벤트 반환
-  LogicResult handleSuccess(GameState state, Sword newSword, SwordDataTable table) {
-    final newState = state.copyWith(
-      currentSword: newSword,
-      currentLevel: state.currentLevel + 1,
-      activeModifiers: [],  // 수정자 소모
-    );
-    return LogicResult(newState, [
-      EnhanceSuccessEvent(
-        prevLevel: state.currentLevel,
-        newLevel: newState.currentLevel,
-        newSwordName: newSword.name,
-        goldSpent: table.getSword(newState.currentLevel)?.enhanceCost ?? 0,
-      ),
-    ]);
-  }
-
-  /// 실패 시 파괴/보호 분기 — 상태 + 이벤트 반환
-  LogicResult handleFail(GameState state, SwordDataTable table, GameContext context) {
-    if (state.hasActiveProtection) {
-      // 보호의 부적이 막음 — 파괴 안 됨, 부적 소모
-      final newState = state.copyWith(
-        hasActiveProtection: false,
-        activeModifiers: [],
-      );
-      return LogicResult(newState, [
-        EnhanceFailEvent(
-          destroyedLevel: state.currentLevel,
-          destroyedSwordName: state.currentSword.name,
-          fragmentsGained: 0,
-          goldSpent: 0,
-          adProtectionAvailable: false,
-          destroyed: false,  // 파괴 안 됨
-        ),
-      ]);
+    public LogicResult HandleSuccess(GameState state, Sword newSword, SwordDataTable table)
+    {
+        var newState = state.With(
+            currentSword: newSword,
+            currentLevel: state.CurrentLevel + 1,
+            activeModifiers: new List<IModifier>());
+        return new LogicResult(newState, new List<GameEvent>
+        {
+            new EnhanceSuccessEvent(state.CurrentLevel, newState.CurrentLevel,
+                newSword.Name, table.GetSword(newState.CurrentLevel)?.EnhanceCost ?? 0)
+        });
     }
-    // 실제 파괴 — pendingAdProtection 상태로 전환 (광고 보호권 대기)
-    final adAvailable = _isAdProtectionAvailable(state, context);
-    final newState = state.copyWith(
-      pendingAdProtection: adAvailable,
-      activeModifiers: [],
-    );
-    return LogicResult(newState, [
-      EnhanceFailEvent(
-        destroyedLevel: state.currentLevel,
-        destroyedSwordName: state.currentSword.name,
-        fragmentsGained: state.currentSword.fragmentReward,
-        goldSpent: 0,
-        adProtectionAvailable: adAvailable,
-        destroyed: true,
-      ),
-    ]);
-  }
 
-  bool _isAdProtectionAvailable(GameState state, GameContext context) {
-    return state.playerData.adLimits.adProtectionUsedToday < 2;
-  }
+    public LogicResult HandleFail(GameState state, SwordDataTable table, GameContext context)
+    {
+        if (state.HasActiveProtection)
+        {
+            var ns = state.With(hasActiveProtection: false, activeModifiers: new List<IModifier>());
+            return new LogicResult(ns, new List<GameEvent>
+            {
+                new EnhanceFailEvent(state.CurrentLevel, state.CurrentSword.Name,
+                    0, 0, false, destroyed: false)
+            });
+        }
+        var adAvailable = state.PlayerData.AdLimits.AdProtectionUsedToday < 2;
+        var newState = state.With(pendingAdProtection: adAvailable, activeModifiers: new List<IModifier>());
+        return new LogicResult(newState, new List<GameEvent>
+        {
+            new EnhanceFailEvent(state.CurrentLevel, state.CurrentSword.Name,
+                state.CurrentSword.FragmentReward, 0, adAvailable, destroyed: true)
+        });
+    }
 }
 
-/// economy_logic.dart — 순수 함수
-class EconomyLogic {
-  LogicResult spendGold(GameState state, int cost) {
-    final newGold = state.playerData.gold - cost;
-    final newState = state.copyWith(
-      playerData: state.playerData.copyWith(gold: newGold),
-    );
-    return LogicResult(newState, [
-      GoldChangeEvent(amount: -cost, newTotal: newGold, reason: 'enhance'),
-    ]);
-  }
-
-  bool canAfford(GameState state, int cost) => state.playerData.gold >= cost;
-
-  LogicResult addGold(GameState state, int amount, String reason) {
-    final newGold = state.playerData.gold + amount;
-    final newState = state.copyWith(
-      playerData: state.playerData.copyWith(gold: newGold),
-    );
-    return LogicResult(newState, [
-      GoldChangeEvent(amount: amount, newTotal: newGold, reason: reason),
-    ]);
-  }
-}
-
-/// fragment_logic.dart — 순수 함수
-class FragmentLogic {
-  LogicResult giveFragments(GameState state, int destroyedLevel, int fragmentBonus) {
-    final baseFragments = state.currentSword.fragmentReward;
-    final total = baseFragments + fragmentBonus;
-    final newFragments = state.playerData.fragments + total;
-    final newState = state.copyWith(
-      playerData: state.playerData.copyWith(fragments: newFragments),
-    );
-    return LogicResult(newState, [
-      FragmentGainEvent(amount: total, totalFragments: newFragments),
-    ]);
-  }
-}
-
-/// mastery_logic.dart — 순수 함수
-class MasteryLogic {
-  LogicResult addExp(GameState state, MasteryLevelTable table) {
-    final newAttempts = state.playerData.mastery.totalAttempts + 1;
-    final currentLevel = state.playerData.mastery.level;
-    final newLevel = table.getLevelForExp(newAttempts);
-    final newState = state.copyWith(
-      playerData: state.playerData.copyWith(
-        mastery: state.playerData.mastery.copyWith(
-          totalAttempts: newAttempts,
-          level: newLevel,
-        ),
-      ),
-    );
-    final events = <GameEvent>[];
-    if (newLevel > currentLevel) {
-      events.add(MasteryLevelUpEvent(newLevel: newLevel, reward: table.getReward(newLevel)));
+/// EconomyLogic.cs — internal 순수 함수
+internal class EconomyLogic
+{
+    public LogicResult SpendGold(GameState state, int cost)
+    {
+        var newGold = state.PlayerData.Gold - cost;
+        var newState = state.With(playerData: state.PlayerData.With(gold: newGold));
+        return new LogicResult(newState, new List<GameEvent>
+            { new GoldChangeEvent(-cost, newGold, "enhance") });
     }
-    return LogicResult(newState, events);
-  }
+
+    public bool CanAfford(GameState state, int cost) => state.PlayerData.Gold >= cost;
+
+    public LogicResult AddGold(GameState state, int amount, string reason)
+    {
+        var newGold = state.PlayerData.Gold + amount;
+        var newState = state.With(playerData: state.PlayerData.With(gold: newGold));
+        return new LogicResult(newState, new List<GameEvent>
+            { new GoldChangeEvent(amount, newGold, reason) });
+    }
+}
+
+/// FragmentLogic.cs — internal 순수 함수
+internal class FragmentLogic
+{
+    public LogicResult GiveFragments(GameState state, int destroyedLevel, int fragmentBonus)
+    {
+        var baseFragments = state.CurrentSword.FragmentReward;
+        var total = baseFragments + fragmentBonus;
+        var newFragments = state.PlayerData.Fragments + total;
+        var newState = state.With(playerData: state.PlayerData.With(fragments: newFragments));
+        return new LogicResult(newState, new List<GameEvent>
+            { new FragmentGainEvent(total, newFragments) });
+    }
+}
+
+/// MasteryLogic.cs — internal 순수 함수
+internal class MasteryLogic
+{
+    public LogicResult AddExp(GameState state, MasteryLevelTable table)
+    {
+        var newAttempts = state.PlayerData.Mastery.TotalAttempts + 1;
+        var currentLevel = state.PlayerData.Mastery.Level;
+        var newLevel = table.GetLevelForExp(newAttempts);
+        var newState = state.With(playerData: state.PlayerData.With(
+            mastery: state.PlayerData.Mastery.With(totalAttempts: newAttempts, level: newLevel)));
+        var events = new List<GameEvent>();
+        if (newLevel > currentLevel)
+            events.Add(new MasteryLevelUpEvent(newLevel, table.GetReward(newLevel)));
+        return new LogicResult(newState, events);
+    }
 }
 ```
 
@@ -833,10 +766,11 @@ class MasteryLogic {
 
 ## 테스트 전략
 
-### 로직 테스트 (game_core)
+### 로직 테스트 (GameCore — NUnit, Unity Test Framework EditMode)
 - 모든 로직 모듈에 대해 단위 테스트 작성
 - `InMemoryRepository`, `FakeTimeProvider`, `FakeRandomProvider` 사용
 - CSV 데이터를 테스트용 문자열로 주입하여 밸런스 독립 테스트 가능
+- 테스트 어셈블리에서 `[InternalsVisibleTo]`로 internal Logic 클래스 접근
 
 ### 테스트 시나리오 예시
 - 강화 성공/실패 → 골드 차감, 파편 지급, 경험치 증가 동시 검증
@@ -886,8 +820,8 @@ class MasteryLogic {
 ## 게임 규칙 상세 (구현 시 참조)
 
 ### 확률 표시 규칙
-- +1~+14: `enhance_view`에서 성공률을 숫자로 표시 (예: "35%")
-- +15 이상: `enhance_view`에서 "???"로 표시
+- +1~+14: `EnhanceView`에서 성공률을 숫자로 표시 (예: "35%")
+- +15 이상: `EnhanceView`에서 "???"로 표시
 - 이 규칙은 **뷰 레이어에서만 처리** — 로직은 항상 실제 확률로 판정
 - 확률 부스터 사용 시에도 "??? + 부스터 적용 중" 으로 표시 (실제 수치 비공개)
 
@@ -901,51 +835,52 @@ class MasteryLogic {
        → 뷰 렌더링 시작
 ```
 
-```dart
-// game_session_logic.dart
-class GameSessionLogic {
-  /// 앱 시작 시 초기 GameState 생성
-  GameState createInitialState(PlayerData playerData, SwordDataTable swordTable) {
-    final woodenSword = swordTable.getSword(0); // +0 나무검
-    final data = playerData.isFirstRun
-        ? playerData.copyWith(gold: 200, isFirstRun: false)
-        : playerData;
-    return GameState(
-      currentSword: woodenSword,
-      currentLevel: 0,
-      playerData: data,
-      activeModifiers: [],
-      hasActiveProtection: false,
-      pendingAdProtection: false,
-    );
-  }
+```csharp
+// GameSessionLogic.cs
+internal class GameSessionLogic
+{
+    /// 앱 시작 시 초기 GameState 생성
+    public GameState CreateInitialState(PlayerData playerData, SwordDataTable swordTable)
+    {
+        var woodenSword = swordTable.GetSword(0); // +0 나무검
+        var data = playerData.IsFirstRun
+            ? playerData.With(gold: 200, isFirstRun: false)
+            : playerData;
+        return new GameState(
+            currentSword: woodenSword,
+            currentLevel: 0,
+            playerData: data,
+            activeModifiers: new List<IModifier>(),
+            hasActiveProtection: false,
+            pendingAdProtection: false);
+    }
 
-  /// 파괴/판매/수집 후 나무검으로 리셋 (PlayerData는 유지)
-  GameState resetToWoodenSword(GameState state, SwordDataTable swordTable) {
-    return state.copyWith(
-      currentSword: swordTable.getSword(0),
-      currentLevel: 0,
-      activeModifiers: [],
-      hasActiveProtection: false,
-      pendingAdProtection: false,
-    );
-  }
+    /// 파괴/판매/수집 후 나무검으로 리셋 (PlayerData는 유지)
+    public GameState ResetToWoodenSword(GameState state, SwordDataTable swordTable)
+    {
+        return state.With(
+            currentSword: swordTable.GetSword(0),
+            currentLevel: 0,
+            activeModifiers: new List<IModifier>(),
+            hasActiveProtection: false,
+            pendingAdProtection: false);
+    }
 }
 ```
 
 - `GameEngine`은 외부에서 생성된 `GameState`를 받아서 시작 — 세션 초기화 로직은 엔진 바깥
-- `game_session_logic`은 순수 함수 — GameState를 받아서 새 GameState를 반환
+- `GameSessionLogic`은 순수 함수 — GameState를 받아서 새 GameState를 반환
 - 커맨드 내부에서도 `resetToWoodenSword`를 호출하여 리셋 처리
 
 ### 세션 초기화 규칙
-- `game_session_logic`에서 처리
+- `GameSessionLogic`에서 처리
 - 앱 시작 시: 나무검(+0) 자동 지급, 초기 골드 200 (첫 실행 시에만)
 - 파괴 시: 나무검(+0) 자동 지급 (골드 유지)
 - 판매 시: 나무검(+0) 자동 지급 + 판매 골드 지급
 - 수집 시: 나무검(+0) 자동 지급 + 컬렉션 등록 (골드 없음)
 
 ### 동기화 타이밍 상세
-- `SyncedRepository`에서 처리
+- `SyncedRepository`에서 처리 (로컬 JSON 파일 + Firebase Unity SDK)
 - **서버 → 로컬 (pull)**: 앱 시작 시 1회. Firebase에서 최신 데이터 가져와 로컬 덮어쓰기.
 - **로컬 → 서버 (push)**: 다음 이벤트 발생 시 자동 트리거
   - `SellEvent` → push
@@ -1015,44 +950,46 @@ EnhanceCommand → 실패 → EnhanceFailEvent 발행
 
 ### 연출 인터페이스
 
-```dart
+```csharp
 /// 강화 연출 컨트롤러 — 구현체를 교체하면 연출 전체가 바뀜
-abstract class EnhanceAnimationController {
-  /// 강화 시도 시작 연출 (망치 두드리기, 서스펜스)
-  /// [level]: 현재 강화 단계, [config]: 해당 단계의 연출 설정
-  Future<void> playEnhanceAttempt(int level, EnhanceAnimationConfig config);
+public interface IEnhanceAnimationController
+{
+    /// 강화 시도 시작 연출 (망치 두드리기, 서스펜스)
+    IEnumerator PlayEnhanceAttempt(int level, EnhanceAnimationConfig config);
 
-  /// 강화 성공 연출
-  Future<void> playSuccess(int prevLevel, int newLevel, EnhanceAnimationConfig config);
+    /// 강화 성공 연출
+    IEnumerator PlaySuccess(int prevLevel, int newLevel, EnhanceAnimationConfig config);
 
-  /// 강화 실패(파괴) 연출
-  Future<void> playDestroy(int destroyedLevel, EnhanceAnimationConfig config);
+    /// 강화 실패(파괴) 연출
+    IEnumerator PlayDestroy(int destroyedLevel, EnhanceAnimationConfig config);
 
-  /// 판매 연출
-  Future<void> playSell(int level, int goldGained);
+    /// 판매 연출
+    IEnumerator PlaySell(int level, int goldGained);
 
-  /// 수집 연출
-  Future<void> playCollect(int level, String swordName);
+    /// 수집 연출
+    IEnumerator PlayCollect(int level, string swordName);
 
-  /// 연출 스킵 (장인 숙련도 Lv.3 이상, 저단계 스킵 옵션)
-  bool canSkip(int level);
+    /// 연출 스킵 (장인 숙련도 Lv.3 이상, 저단계 스킵 옵션)
+    bool CanSkip(int level);
 }
 ```
 
 ### 단계별 연출 설정 데이터
 
-```dart
-/// 단계 구간별 연출 파라미터 — 데이터로 관리하여 코드 수정 없이 조절 가능
-class EnhanceAnimationConfig {
-  final int levelFrom;          // 적용 시작 단계
-  final int levelTo;            // 적용 끝 단계
-  final Duration suspenseDuration;  // 판정 전 뜸 들이기 시간
-  final double screenShakeIntensity; // 화면 흔들림 강도 (0.0 = 없음)
-  final String effectColorHex;  // 이펙트 색상
-  final double effectScale;     // 이펙트 크기 배율
-  final bool enableHaptic;      // 진동 사용 여부
-  final String? successSoundId; // 성공 사운드 에셋 ID
-  final String? destroySoundId; // 파괴 사운드 에셋 ID
+```csharp
+/// 단계 구간별 연출 파라미터 — ScriptableObject로 관리하여 코드 수정 없이 조절 가능
+[CreateAssetMenu(menuName = "Game/EnhanceAnimationConfig")]
+public class EnhanceAnimationConfig : ScriptableObject
+{
+    public int LevelFrom;              // 적용 시작 단계
+    public int LevelTo;                // 적용 끝 단계
+    public float SuspenseDuration;     // 판정 전 뜸 들이기 시간 (초)
+    public float ScreenShakeIntensity; // 화면 흔들림 강도 (0 = 없음)
+    public Color EffectColor;          // 이펙트 색상
+    public float EffectScale;          // 이펙트 크기 배율
+    public bool EnableHaptic;          // 진동 사용 여부
+    public AudioClip SuccessSound;     // 성공 사운드
+    public AudioClip DestroySound;     // 파괴 사운드
 }
 ```
 
@@ -1083,62 +1020,72 @@ class EnhanceAnimationConfig {
 
 ### 연출과 뷰의 연결
 
-```dart
-// enhance_view.dart — 이벤트 구독 시 연출 컨트롤러에 위임
-ref.listen(gameEventProvider, (prev, next) {
-  next.whenData((event) async {
-    if (event is EnhanceSuccessEvent) {
-      final config = animationConfigs.forLevel(event.newLevel);
-      await animationController.playSuccess(event.prevLevel, event.newLevel, config);
-      // 연출 완료 후 UI 상태 갱신
-    } else if (event is EnhanceFailEvent) {
-      final config = animationConfigs.forLevel(event.destroyedLevel);
-      await animationController.playDestroy(event.destroyedLevel, config);
+```csharp
+// EnhanceView.cs — 이벤트 구독 시 연출 컨트롤러에 위임
+private void OnEnable()
+{
+    _engine.OnEvent += HandleGameEvent;
+}
+
+private void HandleGameEvent(GameEvent evt)
+{
+    if (evt is EnhanceSuccessEvent success)
+    {
+        var config = _animationConfigs.ForLevel(success.NewLevel);
+        StartCoroutine(_animationController.PlaySuccess(
+            success.PrevLevel, success.NewLevel, config));
     }
-  });
-});
+    else if (evt is EnhanceFailEvent fail)
+    {
+        var config = _animationConfigs.ForLevel(fail.DestroyedLevel);
+        StartCoroutine(_animationController.PlayDestroy(fail.DestroyedLevel, config));
+    }
+}
 ```
 
-### Riverpod 연동
+### DI 연동 (VContainer 또는 수동 DI)
 
-```dart
-// 연출 구현체를 Provider로 등록 — DI 시점에 교체 가능
-final enhanceAnimationProvider = Provider<EnhanceAnimationController>((ref) {
-  // P1: BasicEnhanceAnimation, P4: RichEnhanceAnimation
-  return BasicEnhanceAnimation();
-});
+```csharp
+// GameBinding.cs — 연출 구현체를 DI로 등록, 교체 시 한 줄만 변경
+public class GameBinding : MonoBehaviour
+{
+    [SerializeField] private BasicEnhanceAnimation _animationController;
+    // P4: RichEnhanceAnimation으로 교체
 
-final animationConfigProvider = Provider<EnhanceAnimationConfigTable>((ref) {
-  return EnhanceAnimationConfigTable.fromDefaults(); // 또는 JSON에서 로딩
-});
+    public IEnhanceAnimationController AnimationController => _animationController;
+}
 ```
 
-- `BasicEnhanceAnimation` → `RichEnhanceAnimation` 교체 시 **Provider 한 줄만 변경**
-- 연출 설정(서스펜스 시간, 색상 등)은 `EnhanceAnimationConfig`로 데이터화 — 코드 수정 없이 튜닝 가능
+- `BasicEnhanceAnimation` → `RichEnhanceAnimation` 교체 시 **Inspector에서 컴포넌트만 교체**
+- 연출 설정(서스펜스 시간, 색상 등)은 `EnhanceAnimationConfig` ScriptableObject로 데이터화 — 코드 수정 없이 Inspector에서 튜닝 가능
 
 ---
 
-## 상태관리 (Flutter)
+## 상태관리 (Unity)
 
-- **라이브러리**: Riverpod 사용
-- `GameEngine`을 Provider로 등록, 뷰에서 `ref.watch`/`ref.listen`으로 상태 구독
-- 이벤트 스트림은 `StreamProvider`로 래핑
+- `GameEngine`을 MonoBehaviour 또는 DI 컨테이너(VContainer)로 등록
+- 뷰에서 `engine.OnEvent += handler`로 이벤트 구독
+- 상태 읽기는 `engine.State` 프로퍼티로 접근
 
-```dart
-// game_binding.dart
-final gameEngineProvider = Provider<GameEngine>((ref) {
-  final repository = ref.watch(storageRepositoryProvider);
-  return GameEngine(
-    context: GameContext(
-      random: SeededRandomProvider(seed: DateTime.now().millisecondsSinceEpoch),
-      time: RealTimeProvider(),
-    ),
-  );
-});
+```csharp
+// GameBinding.cs — GameEngine ↔ Unity 연결
+public class GameBinding : MonoBehaviour
+{
+    private GameEngine _engine;
+    private IStorageRepository _repository;
 
-final gameEventProvider = StreamProvider<GameEvent>((ref) {
-  return ref.watch(gameEngineProvider).events;
-});
+    private void Awake()
+    {
+        _repository = CreateRepository(StorageMode.Test); // P1: InMemory
+        var context = new GameContext(
+            new SeededRandomProvider(DateTime.Now.Millisecond),
+            new RealTimeProvider(),
+            swordTable, masteryTable);
+        _engine = new GameEngine(context);
+    }
+
+    public GameEngine Engine => _engine;
+}
 ```
 
 ---
@@ -1167,23 +1114,28 @@ final gameEventProvider = StreamProvider<GameEvent>((ref) {
 
 세션 중 변하는 상태를 통합. 커맨드의 입력이자 출력.
 
-```dart
-class GameState {
-  final Sword currentSword;         // 현재 보유 검 (Sword 모델 참조)
-  final int currentLevel;           // 현재 강화 단계 (+0 ~ +20)
-  final PlayerData playerData;      // 영구 유저 데이터
+```csharp
+public class GameState
+{
+    public Sword CurrentSword { get; }         // 현재 보유 검 (Sword 모델 참조)
+    public int CurrentLevel { get; }           // 현재 강화 단계 (+0 ~ +20)
+    public PlayerData PlayerData { get; }      // 영구 유저 데이터
 
-  // P2 확장 — P1에서는 빈 리스트 / false
-  final List<Modifier> activeModifiers;   // 적용 중인 수정자 (부스터, 주문서)
-  final bool hasActiveProtection;         // 보호의 부적 적용 여부
+    // P2 확장 — P1에서는 빈 리스트 / false
+    public List<IModifier> ActiveModifiers { get; }  // 적용 중인 수정자 (부스터, 주문서)
+    public bool HasActiveProtection { get; }         // 보호의 부적 적용 여부
 
-  // P2 확장 — 광고 보호권 사후 적용용
-  final bool pendingAdProtection;         // 파괴 직후 광고 보호권 사용 대기 상태
+    // P2 확장 — 광고 보호권 사후 적용용
+    public bool PendingAdProtection { get; }         // 파괴 직후 광고 보호권 사용 대기 상태
+
+    // 불변 복사 (With 패턴)
+    public GameState With(...) { ... }
 }
 
 /// 확률 수정자 인터페이스 (P2에서 구현)
-abstract class Modifier {
-  double apply(double baseRate);  // 기존 확률에 수정 적용
+public interface IModifier
+{
+    double Apply(double baseRate);  // 기존 확률에 수정 적용
 }
 ```
 
@@ -1193,27 +1145,31 @@ abstract class Modifier {
 
 P1에서 생성하되, P2/P3 확장을 고려한 구조로 설계.
 
-```dart
-class PlayerData {
-  // P1 — 핵심
-  final int gold;
-  final Statistics stats;
+```csharp
+public class PlayerData
+{
+    // P1 — 핵심
+    public int Gold { get; }
+    public Statistics Stats { get; }
 
-  // P2 — 서브 시스템
-  final int fragments;
-  final MasteryData mastery;        // 장인 숙련도 레벨, 경험치
-  final CollectionData collection; // 수집 목록, 중복 횟수
-  final Inventory inventory;       // 보유 아이템 (부적, 주문서)
-  final AdLimits adLimits;         // 일일 광고 제한 (보호권 잔여 횟수, 마지막 리셋 날짜)
+    // P2 — 서브 시스템
+    public int Fragments { get; }
+    public MasteryData Mastery { get; }
+    public CollectionData Collection { get; }
+    public Inventory Inventory { get; }
+    public AdLimits AdLimits { get; }
 
-  // P3 — 소셜
-  final AchievementData achievements; // 달성 업적
-  final TitleData titles;             // 획득 칭호, 장착 칭호
-  final String nickname;
+    // P3 — 소셜
+    public AchievementData Achievements { get; }
+    public TitleData Titles { get; }
+    public string Nickname { get; }
 
-  // 메타
-  final bool isFirstRun;          // 첫 실행 여부 (초기 200골드 지급 판단)
-  final DateTime lastSyncedAt;
+    // 메타
+    public bool IsFirstRun { get; }
+    public DateTime LastSyncedAt { get; }
+
+    // 불변 복사
+    public PlayerData With(...) { ... }
 }
 ```
 
@@ -1224,18 +1180,19 @@ class PlayerData {
 
 랭킹 산출 및 업적 판정에 사용되는 누적 통계.
 
-```dart
-class Statistics {
-  final int highestEnhanceLevel;     // 역대 최고 강화 단계
-  final int weeklyHighestLevel;      // 이번 주 최고 강화 단계
-  final int totalDestroys;           // 총 파괴 횟수
-  final int totalEnhanceAttempts;    // 총 강화 시도 횟수
-  final int totalSells;              // 총 판매 횟수
-  final int totalGoldEarned;         // 총 획득 골드
-  final int maxConsecutiveSuccess;   // 연속 성공 최대 기록
-  final int maxConsecutiveFail;      // 연속 파괴 최대 기록
-  final int currentConsecutiveSuccess; // 현재 연속 성공 (리셋용)
-  final int currentConsecutiveFail;    // 현재 연속 파괴 (리셋용)
+```csharp
+public class Statistics
+{
+    public int HighestEnhanceLevel { get; }     // 역대 최고 강화 단계
+    public int WeeklyHighestLevel { get; }      // 이번 주 최고 강화 단계
+    public int TotalDestroys { get; }           // 총 파괴 횟수
+    public int TotalEnhanceAttempts { get; }    // 총 강화 시도 횟수
+    public int TotalSells { get; }              // 총 판매 횟수
+    public int TotalGoldEarned { get; }         // 총 획득 골드
+    public int MaxConsecutiveSuccess { get; }   // 연속 성공 최대 기록
+    public int MaxConsecutiveFail { get; }      // 연속 파괴 최대 기록
+    public int CurrentConsecutiveSuccess { get; } // 현재 연속 성공 (리셋용)
+    public int CurrentConsecutiveFail { get; }    // 현재 연속 파괴 (리셋용)
 }
 ```
 
@@ -1243,42 +1200,49 @@ class Statistics {
 
 P1에서 클래스만 정의하고 기본값으로 초기화. P2/P3에서 상세 구현.
 
-```dart
+```csharp
 /// 장인 숙련도/경험치 (P2에서 상세 구현)
-class MasteryData {
-  final int level;          // 현재 장인 숙련도 (1~10)
-  final int totalAttempts;  // 누적 강화 횟수 (= 경험치)
+public class MasteryData
+{
+    public int Level { get; }          // 현재 장인 숙련도 (1~10)
+    public int TotalAttempts { get; }  // 누적 강화 횟수 (= 경험치)
+    public MasteryData With(int? level = null, int? totalAttempts = null) { ... }
 }
 
 /// 컬렉션 (P2에서 상세 구현)
-class CollectionData {
-  final Map<int, int> collected;  // {검 레벨: 수집 횟수} (예: {10: 2, 12: 1})
-  int get uniqueCount => collected.length;
-  int get totalCollectible => 11;  // swords.csv에서 Y인 검 수
-  double get completionRate => uniqueCount / totalCollectible;
+public class CollectionData
+{
+    public Dictionary<int, int> Collected { get; }  // {검 레벨: 수집 횟수}
+    public int UniqueCount => Collected.Count;
+    public int TotalCollectible => 11;  // swords.csv에서 Y인 검 수
+    public double CompletionRate => (double)UniqueCount / TotalCollectible;
 }
 
 /// 보유 아이템 (P2에서 상세 구현)
-class Inventory {
-  final int protectionAmulets;    // 보호의 부적 보유량
-  final int blessingScrolls;      // 축복의 주문서 보유량
+public class Inventory
+{
+    public int ProtectionAmulets { get; }    // 보호의 부적 보유량
+    public int BlessingScrolls { get; }      // 축복의 주문서 보유량
 }
 
 /// 광고 일일 제한 (P2에서 상세 구현)
-class AdLimits {
-  final int adProtectionUsedToday;  // 오늘 사용한 광고 보호권 횟수 (최대 2)
-  final DateTime lastResetDate;     // 마지막 일일 리셋 날짜 (자정 기준)
+public class AdLimits
+{
+    public int AdProtectionUsedToday { get; }  // 오늘 사용한 광고 보호권 횟수 (최대 2)
+    public DateTime LastResetDate { get; }     // 마지막 일일 리셋 날짜 (자정 기준)
 }
 
 /// 업적 (P3에서 상세 구현)
-class AchievementData {
-  final Set<String> achieved;  // 달성한 업적 ID 집합
+public class AchievementData
+{
+    public HashSet<string> Achieved { get; }  // 달성한 업적 ID 집합
 }
 
 /// 칭호 (P3에서 상세 구현)
-class TitleData {
-  final Set<String> earned;     // 획득한 칭호 ID 집합
-  final String? equipped;       // 현재 장착 중인 칭호 ID (null = 미장착)
+public class TitleData
+{
+    public HashSet<string> Earned { get; }  // 획득한 칭호 ID 집합
+    public string Equipped { get; }         // 현재 장착 중인 칭호 ID (null = 미장착)
 }
 ```
 
@@ -1286,25 +1250,26 @@ class TitleData {
 
 ## CSV 파싱 규칙
 
-### 로딩 아키텍처 (Flutter-free 원칙)
+### 로딩 아키텍처 (Unity-free 원칙)
 
-`game_core`는 Flutter import 금지이므로, CSV **파일 읽기**는 `app_flutter`가 담당하고, `game_core`는 **문자열 파싱**만 담당.
+`GameCore`는 UnityEngine import 금지이므로, CSV **파일 읽기**는 `App`(Unity)이 담당하고, `GameCore`는 **문자열 파싱**만 담당.
 
-```dart
-// game_core — CSV 문자열을 받아서 파싱만 담당
-class SwordDataLoader {
-  List<Sword> parse(String csvContent) { ... }
+```csharp
+// GameCore — CSV 문자열을 받아서 파싱만 담당
+public class SwordDataLoader
+{
+    public List<Sword> Parse(string csvContent) { ... }
 }
 
-// app_flutter — Flutter API로 파일을 읽어서 문자열로 전달
-final csvString = await rootBundle.loadString('assets/data/swords.csv');
-final swords = SwordDataLoader().parse(csvString);
+// App (Unity) — Resources.Load로 파일을 읽어서 문자열로 전달
+var csvAsset = Resources.Load<TextAsset>("Data/swords");
+var swords = new SwordDataLoader().Parse(csvAsset.text);
 
 // 테스트 — 하드코딩된 CSV 문자열을 직접 전달 (파일 I/O 불필요)
-final swords = SwordDataLoader().parse('강화,검 이름,...\n+0,나무검,...');
+var swords = new SwordDataLoader().Parse("강화,검 이름,...\n+0,나무검,...");
 ```
 
-이 구조로 `game_core`의 Flutter 의존성 0을 유지하면서 테스트에서도 CSV 데이터를 자유롭게 주입 가능.
+이 구조로 `GameCore`의 Unity 의존성 0을 유지하면서 테스트에서도 CSV 데이터를 자유롭게 주입 가능.
 
 ### swords.csv
 - **인코딩**: UTF-8
@@ -1356,7 +1321,7 @@ P1에서 `EnhanceCommand.execute()`는 순수 함수인 Logic들을 순차 호�
 
 ### P1 저장 모드
 - P1에서는 `InMemoryRepository` (P0-8에서 생성) 사용
-- Hive/Firebase 연동은 P2에서 수행
+- 로컬 파일 저장/Firebase 연동은 P2에서 수행
 - P1 태스크에서 자체 로컬 저장 구현 금지
 
 ### P1 뷰 — 미구현 화면 처리
@@ -1365,6 +1330,6 @@ P1에서 `EnhanceCommand.execute()`는 순수 함수인 Logic들을 순차 호�
 - 하단 네비게이션은 3탭 모두 표시하되, 공방/업적은 비활성 느낌
 
 ### P1 이벤트 시스템
-- `StreamController.broadcast()`로 다중 리스너 지원
-- P2에서 동기화 리스너, 업적 체크 리스너를 `events.listen()`으로 추가 가능
+- `event Action<GameEvent>`로 다중 리스너 지원 (C# 멀티캐스트 델리게이트)
+- P2에서 동기화 리스너, 업적 체크 리스너를 `engine.OnEvent += handler`로 추가 가능
 - P1에서는 뷰만 구독
