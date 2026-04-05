@@ -1,0 +1,40 @@
+# Unity
+/Project/[Ll]ibrary/
+/Project/[Tt]emp/
+/Project/[Oo]bj/
+/Project/[Bb]uild/
+/Project/[Bb]uilds/
+/Project/[Ll]ogs/
+/Project/[Uu]serSettings/
+/Project/[Mm]emoryCaptures/
+/Project/[Rr]ecordings/
+/Project/[Aa]sset[Ss]tore[Tt]ools*/
+
+# IDE
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/settings.local.json
+
+# OMC
+.omc/
