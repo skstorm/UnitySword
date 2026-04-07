@@ -23,7 +23,7 @@
 
 ### 로직
 
-- [ ] P1-4. `EnhanceLogic.cs` — **internal 순수 함수**로 구현 (콜백/사이드이펙트 없음). `GetEffectiveRate()`, `Roll()`, `HandleSuccess()`, `HandleFail()` → 각각 `LogicResult(NewState, Events)` 반환. **P2 확장 포인트 필수**: ActiveModifiers(부스터/주문서), HasActiveProtection(부적). 구현계획서 "Logic 순수 함수 규칙" 및 "P1 설계 가이드라인" 참조
+- [ ] P1-4. `EnhanceLogic.cs` — **internal 순수 함수**로 구현 (콜백/사이드이펙트 없음). `GetEffectiveRate()`, `Roll()`, `HandleSuccess()`, `HandleFail()` → 각각 `LogicResult(NewState, Events)` 반환. **P2 확장 포인트 필수**: HasActiveProtection(부적). 구현계획서 "Logic 순수 함수 규칙" 및 "P1 설계 가이드라인" 참조
 - [ ] P1-5. `EconomyLogic.cs` — **internal 순수 함수**로 구현. `CanAfford()`, `SpendGold()`, `AddGold()` → `LogicResult` 반환. 골드 차감 (강화 비용: `SwordDataTable`에서 해당 레벨의 `EnhanceCost` 참조), 골드 지급 (판매: `SwordDataTable`에서 해당 레벨의 `SellPrice` 참조). **판매가는 CSV 고정값을 그대로 사용** — 로직에서 계산하지 않음
 - [ ] P1-6. `GameSessionLogic.cs` — `CreateInitialState`(앱 시작 시 GameState 생성) + `ResetToWoodenSword`(파괴/판매/수집 후 리셋). 첫 실행 시 200골드 지급 (`IsFirstRun` 판단 포함). 구현계획서 "GameEngine 초기화 흐름" 및 "세션 초기화 규칙" 4케이스 참조
 
@@ -60,6 +60,8 @@
 - [ ] P1-21. `EnhanceView.cs` — 강화 메인 화면 (검 표시, 강화/판매 버튼, 골드, 확률 표시: +14이하 숫자, +15이상 "???"). 이벤트 수신 시 `IEnhanceAnimationController`에 위임하여 연출 재생
 - [ ] P1-22. 하단 네비게이션 뼈대 (대장간/공방/업적 탭, Unity UI). 공방/업적은 "준비 중" placeholder 표시
 - [ ] P1-23. `GameBinding.cs` — GameEngine ↔ Unity 연결 (VContainer 또는 수동 DI). P1에서는 InMemoryRepository 사용. 자체 로컬 저장 구현 금지
+- [ ] P1-24. 화면 전이 규칙 구현 — 연출 중 전체 Raycast blocker, 타이틀 복귀 확인 팝업, 팝업별 Android 뒤로가기 처리 (판매/수집=취소, 파괴=무시), 앱 포그라운드 복귀 시 연출 스킵
+- [ ] P1-25. P1 파괴 시 유저 확인 방식 — 도발 메시지 후 "터치하여 계속" 표시, 유저 터치 시 ConfirmDestroyCommand dispatch (자동 리셋 대신)
 
 ---
 
@@ -69,10 +71,9 @@
 
 - [ ] P2-1. `Fragment` 모델 (보유량)
 - [ ] P2-2. `FragmentLogic.cs` — 파괴 시 파편 지급 (단계 비례)
-- [ ] P2-3. `UseItemCommand` — 보호의 부적/축복의 주문서 사용
+- [ ] P2-3. `UseItemCommand` — 보호의 부적 사용
 - [ ] P2-4. `ExchangeCommand` — 파편 → 아이템 교환
 - [ ] P2-5. 보호의 부적 적용 로직 (파괴 대신 단계 유지)
-- [ ] P2-6. 축복의 주문서 적용 로직 (확률 +5%p)
 - [ ] P2-7. 파편 관련 이벤트 (`FragmentGainEvent`, `ExchangeEvent`, `UseItemEvent`)
 - [ ] P2-8. 파편 관련 테스트 (지급량, 교환, 아이템 효과)
 
@@ -95,20 +96,20 @@
 
 ### 광고 보상
 
-- [ ] P2-20. `AdRewardLogic.cs` — 보상 타입별 처리 (보호권/골드/부스터)
+- [ ] P2-20. `AdRewardLogic.cs` — 보상 타입별 처리 (보호권/골드)
 - [ ] P2-21. `WatchAdCommand` — 광고 시청 커맨드
 - [ ] P2-22. 보호권 일일 2회 제한 로직 (TimeProvider 활용)
 - [ ] P2-23. 광고 보호권 **사후 적용** 흐름 구현 + `ConfirmDestroyCommand` 작성. 구현계획서 "광고 보호권 사후 적용 커맨드 흐름" 참조. 흐름: EnhanceCommand→파괴→EnhanceFailEvent(adProtectionAvailable)→뷰 팝업→광고 시청 시 WatchAdCommand(protection)로 복구, 거부 시 ConfirmDestroyCommand로 파괴 확정+나무검 리셋. **보호의 부적(사전 적용)과 적용 시점이 다름에 주의**
-- [ ] P2-24. 확률 부스터 +5%p 적용 로직. 광고 부스터와 축복의 주문서 **중복 적용 가능 (최대 +10%p)**
 - [ ] P2-25. 광고 보상 이벤트 (`AdRewardEvent`)
-- [ ] P2-26. 광고 보상 테스트 — 보호권 일일 제한(2회→3회째 거부), 골드 무제한, 부스터 적용, **부스터+주문서 중복 적용 시 +10%p 상한 검증**, 광고 보호권 사후 적용(파괴 후 복구) 테스트
+- [ ] P2-26. 광고 보상 테스트 — 보호권 일일 제한(2회→3회째 거부), 골드 무제한, 광고 보호권 사후 적용(파괴 후 복구) 테스트
+- [ ] P2-27a. `IAdService` 인터페이스 + `DevAdService`(개발모드, 즉시 성공) + `RealAdService`(본환경, AdMob) 구현. DI로 구현체 교체
 
 ### 뷰
 
 - [ ] P2-27. `WorkshopView.cs` — 공방 화면 (장인 숙련도/경험치, 파편 교환소, 컬렉션 도감, Unity UI)
 - [ ] P2-28. 파편 교환 UI
 - [ ] P2-29. 컬렉션 도감 UI (수집 검 진열, 미수집 실루엣, 완성도, 별 표시)
-- [ ] P2-30. 강화 화면에 부스터/보호 부적 사용 UI 추가 + 파괴 시 광고 보호권 팝업 UI (사후 적용)
+- [ ] P2-30. 강화 화면에 보호 부적 사용 UI 추가 + 파괴 시 광고 보호권 팝업 UI (사후 적용)
 - [ ] P2-31. `SwordDisplayWidget.cs`, `GoldIndicatorWidget.cs` — 공용 UI 컴포넌트 분리
 - [ ] P2-32. 광고 연동 (`AdService.cs` — Unity Ads / AdMob Unity 리워드 광고)
 
@@ -168,7 +169,7 @@ InMemoryRepository는 P0-8에서 생성 완료.
 
 - [ ] P4-1. `RichEnhanceAnimation` 구현체 — 고도화 연출 (서스펜스 어둡게→불꽃 파티클→빛 집중→결과, 단계별 차등 폭발 이펙트, 파괴 시 검 갈라짐 파티클, 사운드/진동 연동). `enhanceAnimationProvider`의 구현체만 교체하여 적용
 - [ ] P4-2. 공방 외형 변화 (장인 숙련도 레벨별)
-- [ ] P4-3. 확률 표시 고도화 (부스터 적용 시 "??? + 부스터 적용 중" 표시 등)
+- [ ] P4-3. 확률 표시 고도화 (+15 이상 "???" 연출 강화 등)
 - [ ] P4-4. FTUE (신규 유저 첫 경험 가이드)
 - [ ] P4-5. 설정 화면 (사운드, 진동, 알림, 데이터 초기화)
 - [ ] P4-6. 오프라인 모드 처리 (광고 불가 시 안내)

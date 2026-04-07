@@ -17,7 +17,7 @@ UnitySword/
 │   │   ├── GameCore/                    ← 순수 C# 어셈블리 (Unity 의존성 없음, GameCore.asmdef)
 │   │   │   ├── Models/               데이터 모델
 │   │   │   │   ├── Sword.cs
-│   │   │   │   ├── GameState.cs      세션 상태 (현재 검, 레벨, 수정자 등)
+│   │   │   │   ├── GameState.cs      세션 상태 (현재 검, 레벨 등)
 │   │   │   │   ├── Mastery.cs        장인 숙련도
 │   │   │   │   ├── Fragment.cs       파편
 │   │   │   │   ├── Collection.cs
@@ -35,7 +35,7 @@ UnitySword/
 │   │   │   │   ├── AchievementLogic.cs     업적 달성 판정
 │   │   │   │   ├── TitleLogic.cs           칭호 부여/장착
 │   │   │   │   ├── RankingLogic.cs         랭킹 산출
-│   │   │   │   ├── AdRewardLogic.cs        광고 보상 처리 (보호권/골드/부스터)
+│   │   │   │   ├── AdRewardLogic.cs        광고 보상 처리 (보호권/골드)
 │   │   │   │   └── GameSessionLogic.cs     세션 관리 (시작/리셋)
 │       │   │
 │   │   │   ├── Repositories/         저장소 인터페이스
@@ -47,9 +47,9 @@ UnitySword/
 │   │   │   │   ├── EnhanceCommand.cs       강화 시도
 │   │   │   │   ├── SellCommand.cs          판매
 │   │   │   │   ├── CollectCommand.cs       수집
-│   │   │   │   ├── UseItemCommand.cs       파편 아이템 사용
+│   │   │   │   ├── UseItemCommand.cs       보호의 부적 사용
 │   │   │   │   ├── ExchangeCommand.cs      파편 교환
-│   │   │   │   ├── WatchAdCommand.cs       광고 시청 (보호권/골드/부스터)
+│   │   │   │   ├── WatchAdCommand.cs       광고 시청 (보호권/골드)
 │   │   │   │   └── ConfirmDestroyCommand.cs  광고 보호권 거부 시 파괴 확정
 │       │   │
 │   │   │   ├── Events/               상태 변경 이벤트 (출력)
@@ -234,9 +234,9 @@ View → Logic:  보기 O (상태를 읽을 수 있음)   / 조정 X (직접 조
 | `EnhanceCommand` | 강화 시도 | - |
 | `SellCommand` | 현재 검 판매 | - |
 | `CollectCommand` | 현재 검 수집 | - |
-| `UseItemCommand` | 파편 아이템 사용 (사전) | itemType (부적/주문서) |
-| `ExchangeCommand` | 파편 교환 | itemType, quantity |
-| `WatchAdCommand` | 광고 시청 보상 | adType (보호권/골드/부스터) |
+| `UseItemCommand` | 보호의 부적 사용 (사전) | - |
+| `ExchangeCommand` | 파편 교환 | quantity |
+| `WatchAdCommand` | 광고 시청 보상 | adType (보호권/골드) |
 | `ConfirmDestroyCommand` | 광고 보호권 거부 시 파괴 확정 | - |
 
 ### 커맨드 인터페이스
@@ -304,7 +304,7 @@ public class CommandRejectedEvent : GameEvent
 | `SellCommand` | `pendingAdProtection=true` | `'pending_ad_protection'` |
 | `CollectCommand` | currentLevel < 10 | `'level_too_low'` |
 | `CollectCommand` | `pendingAdProtection=true` | `'pending_ad_protection'` |
-| `UseItemCommand` | 해당 아이템 보유량 0 | `'no_item'` |
+| `UseItemCommand` | 보호의 부적 보유량 0 | `'no_item'` |
 | `ExchangeCommand` | 파편 부족 | `'insufficient_fragments'` |
 | `WatchAdCommand(protection)` | `pendingAdProtection=false` | `'no_pending_protection'` |
 | `ConfirmDestroyCommand` | `pendingAdProtection=false` | `'no_pending_destruction'` |
@@ -557,6 +557,30 @@ Load() → 앱 시작 시 Firebase에서 최신 데이터 pull → 로컬에 반
 - 평상시에는 로컬에서 읽기 (빠름)
 - 동기화 실패 시 로컬 데이터 유지, 복귀 시 재동기화
 
+### 광고 서비스 (AdService 패턴)
+
+Repository 패턴과 동일한 구조로 광고 서비스를 인터페이스로 추상화.
+
+```csharp
+// App 어셈블리 (Unity 의존성 있으므로 GameCore 밖)
+public interface IAdService
+{
+    void ShowRewardAd(string adType, Action onSuccess, Action onFailed);
+    bool IsReady(string adType);
+}
+```
+
+**구현체 2종:**
+
+| 구현체 | 용도 | 설명 |
+|--------|------|------|
+| `DevAdService` | 개발/테스트 | 광고 없이 즉시 onSuccess 콜백 |
+| `RealAdService` | 본환경 | AdMob 리워드 광고 재생, 시청 완료 시 onSuccess |
+
+- 뷰가 `IAdService.ShowRewardAd()`를 호출하고, 성공 콜백에서 `WatchAdCommand`를 dispatch
+- 로직(GameCore)은 광고 표시 방법을 모름
+- DI 시점에 구현체만 교체
+
 ### 시간 추상화
 ```csharp
 // GameCore
@@ -613,7 +637,7 @@ public class FakeRandomProvider : IRandomProvider
 [collection_logic]   → (독립) 수집 등록/완성도
 [achievement_logic]  → (독립) 달성 조건 판정 (GameState 읽기만)
 [ranking_logic]      → (독립) 랭킹 산출 (Statistics 읽기만)
-[ad_reward_logic]    → (독립) 광고 보상 처리, 일일 제한 체크
+[ad_reward_logic]    → (독립) 광고 보상 처리 (보호권/골드), 일일 제한 체크
 [game_session_logic] → (독립) 초기 상태 생성, 나무검 리셋
 
 [Command가 조합을 담당]
@@ -660,10 +684,7 @@ internal class EnhanceLogic
 {
     public double GetEffectiveRate(GameState state, Sword targetSword)
     {
-        double rate = targetSword.SuccessRate;
-        foreach (var modifier in state.ActiveModifiers)
-            rate = modifier.Apply(rate);
-        return Math.Clamp(rate, 0.0, 1.0);
+        return Math.Clamp(targetSword.SuccessRate, 0.0, 1.0);
     }
 
     public bool Roll(double effectiveRate, IRandomProvider random)
@@ -673,8 +694,7 @@ internal class EnhanceLogic
     {
         var newState = state.With(
             currentSword: newSword,
-            currentLevel: state.CurrentLevel + 1,
-            activeModifiers: new List<IModifier>());
+            currentLevel: state.CurrentLevel + 1);
         return new LogicResult(newState, new List<GameEvent>
         {
             new EnhanceSuccessEvent(state.CurrentLevel, newState.CurrentLevel,
@@ -686,7 +706,7 @@ internal class EnhanceLogic
     {
         if (state.HasActiveProtection)
         {
-            var ns = state.With(hasActiveProtection: false, activeModifiers: new List<IModifier>());
+            var ns = state.With(hasActiveProtection: false);
             return new LogicResult(ns, new List<GameEvent>
             {
                 new EnhanceFailEvent(state.CurrentLevel, state.CurrentSword.Name,
@@ -694,7 +714,7 @@ internal class EnhanceLogic
             });
         }
         var adAvailable = state.PlayerData.AdLimits.AdProtectionUsedToday < 2;
-        var newState = state.With(pendingAdProtection: adAvailable, activeModifiers: new List<IModifier>());
+        var newState = state.With(pendingAdProtection: adAvailable);
         return new LogicResult(newState, new List<GameEvent>
         {
             new EnhanceFailEvent(state.CurrentLevel, state.CurrentSword.Name,
@@ -823,7 +843,7 @@ internal class MasteryLogic
 - +1~+14: `EnhanceView`에서 성공률을 숫자로 표시 (예: "35%")
 - +15 이상: `EnhanceView`에서 "???"로 표시
 - 이 규칙은 **뷰 레이어에서만 처리** — 로직은 항상 실제 확률로 판정
-- 확률 부스터 사용 시에도 "??? + 부스터 적용 중" 으로 표시 (실제 수치 비공개)
+- +15 이상 구간의 실제 수치는 비공개
 
 ### GameEngine 초기화 흐름
 
@@ -850,7 +870,6 @@ internal class GameSessionLogic
             currentSword: woodenSword,
             currentLevel: 0,
             playerData: data,
-            activeModifiers: new List<IModifier>(),
             hasActiveProtection: false,
             pendingAdProtection: false);
     }
@@ -861,7 +880,6 @@ internal class GameSessionLogic
         return state.With(
             currentSword: swordTable.GetSword(0),
             currentLevel: 0,
-            activeModifiers: new List<IModifier>(),
             hasActiveProtection: false,
             pendingAdProtection: false);
     }
@@ -1108,9 +1126,9 @@ public class GameBinding : MonoBehaviour
 | `CollectionCompleteEvent` | - (도감 100% 달성) |
 | `FragmentGainEvent` | amount, totalFragments |
 | `ExchangeEvent` | itemType, fragmentsSpent, totalFragments |
-| `UseItemEvent` | itemType (부적/주문서), remainingCount |
+| `UseItemEvent` | remainingCount |
 | `MasteryLevelUpEvent` | newLevel, reward (할인율/외형ID/파편보너스) |
-| `AdRewardEvent` | adType (보호권/골드/부스터), rewardDetail |
+| `AdRewardEvent` | adType (보호권/골드), rewardDetail |
 | `GoldChangeEvent` | amount, newTotal, reason (판매/광고/교환/강화비용) |
 
 ---
@@ -1126,8 +1144,6 @@ public class GameState
     public int CurrentLevel { get; }           // 현재 강화 단계 (+0 ~ +20)
     public PlayerData PlayerData { get; }      // 영구 유저 데이터
 
-    // P2 확장 — P1에서는 빈 리스트 / false
-    public List<IModifier> ActiveModifiers { get; }  // 적용 중인 수정자 (부스터, 주문서)
     public bool HasActiveProtection { get; }         // 보호의 부적 적용 여부
 
     // P2 확장 — 광고 보호권 사후 적용용
@@ -1135,12 +1151,6 @@ public class GameState
 
     // 불변 복사 (With 패턴)
     public GameState With(...) { ... }
-}
-
-/// 확률 수정자 인터페이스 (P2에서 구현)
-public interface IModifier
-{
-    double Apply(double baseRate);  // 기존 확률에 수정 적용
 }
 ```
 
@@ -1227,7 +1237,6 @@ public class CollectionData
 public class Inventory
 {
     public int ProtectionAmulets { get; }    // 보호의 부적 보유량
-    public int BlessingScrolls { get; }      // 축복의 주문서 보유량
 }
 
 /// 광고 일일 제한 (P2에서 상세 구현)
@@ -1305,7 +1314,7 @@ var swords = new SwordDataLoader().Parse("강화,검 이름,...\n+0,나무검,..
 P1에서 MVP를 만들 때, P2/P3 확장을 위해 지켜야 할 제약 조건.
 
 ### enhance_logic 확장 포인트
-P1에서 강화 로직을 구현할 때, P2의 부스터/부적/파편/경험치를 **코드 수정 없이 끼울 수 있는 구조**로 만들어야 함.
+P1에서 강화 로직을 구현할 때, P2의 부적/파편/경험치를 **코드 수정 없이 끼울 수 있는 구조**로 만들어야 함.
 
 **확장 방법: EnhanceCommand 내부의 주석 블록 해제**
 
@@ -1320,7 +1329,6 @@ P1에서 `EnhanceCommand.execute()`는 순수 함수인 Logic들을 순차 호�
 // P3 해제: AchievementLogic.check()
 ```
 
-- `activeModifiers`: P1에서는 빈 리스트, P2에서 부스터/주문서 추가 (Logic은 이미 처리하는 코드 포함)
 - `hasActiveProtection`: P1에서는 항상 false, P2에서 부적 적용 시 true로 전환
 - 각 Logic은 순수 함수이므로 조합 순서에 끼워넣기만 하면 됨 — 콜백 연결이나 DI 재설정 불필요
 
