@@ -19,11 +19,11 @@ public static class SwordDataLoader
         // Parse header to find column indices
         var header = SplitCsvLine(lines[0]);
         int colLevel = FindColumn(header, "강화");
-        int colName = FindColumn(header, "이름");
+        int colName = FindColumn(header, "검 이름");
         int colTheme = FindColumn(header, "테마");
         int colRate = FindColumn(header, "성공률(%)");
         int colCost = FindColumn(header, "강화비용");
-        int colCumCost = FindColumn(header, "누적비용");
+        int colCumCost = FindColumn(header, "누적투자");
         int colSell = FindColumn(header, "판매가");
         int colFragment = FindColumn(header, "파괴시파편");
         int colCollect = FindColumn(header, "수집가능");

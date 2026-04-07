@@ -17,8 +17,12 @@ public class ConsoleRenderer
 
     public void Clear()
     {
-        Console.Clear();
-        Console.CursorVisible = false;
+        try
+        {
+            Console.Clear();
+            Console.CursorVisible = false;
+        }
+        catch (IOException) { }  // non-interactive (piped) environment
     }
 
     public void Flash(ConsoleColor color)
@@ -69,7 +73,10 @@ public class ConsoleRenderer
     public void WaitKey()
     {
         PrintCenter("[아무 키] 계속", ConsoleColor.DarkGray);
-        Console.ReadKey(intercept: true);
+        if (Console.IsInputRedirected)
+            Console.Read();
+        else
+            Console.ReadKey(intercept: true);
     }
 
     public void DrawBox(string[] lines)

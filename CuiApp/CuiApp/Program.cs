@@ -35,7 +35,9 @@ for (int i = 0; i < args.Length; i++)
 var random = new ConsoleRandomProvider(seed);
 var time = new ConsoleTimeProvider();
 var repo = new JsonFileRepository(savePath);
-var swordTable = SwordDataLoader.Load("swords.csv");
+// CSV는 실행 파일과 같은 디렉토리에서 찾기
+var baseDir = AppContext.BaseDirectory;
+var swordTable = SwordDataLoader.Load(Path.Combine(baseDir, "swords.csv"));
 var context = new GameContext(random, time, swordTable, isAdSystemEnabled: false);
 
 var playerData = repo.Load();
@@ -61,12 +63,20 @@ while (true)
     renderer.Clear();
     screens.Render(engine.State, context);
 
-    var key = Console.ReadKey(intercept: true).KeyChar;
-    if (key == 'q' || key == 'Q')
+    char key;
+    if (Console.IsInputRedirected)
     {
-        if (screens.CurrentName != "title")
-            break;
+        var c = Console.Read();
+        if (c == -1) break;  // EOF
+        key = (char)c;
     }
+    else
+    {
+        key = Console.ReadKey(intercept: true).KeyChar;
+    }
+
+    if ((key == 'q' || key == 'Q') && screens.CurrentName != "title")
+        break;
 
     screens.HandleInput(key, engine, context);
     eventRenderer.PlayAll();
