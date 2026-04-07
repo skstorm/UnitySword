@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace GameCore.Models;
 
@@ -107,6 +109,8 @@ public class PlayerData
     public AdLimits AdLimits { get; }
     public bool IsFirstRun { get; }
     public DateTime LastSyncedAt { get; }
+    public List<int> CollectedSwords { get; }
+    public int MasteryExp { get; }
 
     public PlayerData(
         int gold = 0,
@@ -115,7 +119,9 @@ public class PlayerData
         Inventory items = null,
         AdLimits adLimits = null,
         bool isFirstRun = true,
-        DateTime lastSyncedAt = default)
+        DateTime lastSyncedAt = default,
+        List<int> collectedSwords = null,
+        int masteryExp = 0)
     {
         Gold = gold;
         Stats = stats ?? new Statistics();
@@ -124,6 +130,8 @@ public class PlayerData
         AdLimits = adLimits ?? new AdLimits();
         IsFirstRun = isFirstRun;
         LastSyncedAt = lastSyncedAt;
+        CollectedSwords = collectedSwords ?? new List<int>();
+        MasteryExp = masteryExp;
     }
 
     public static PlayerData CreateDefault()
@@ -135,7 +143,9 @@ public class PlayerData
             items: new Inventory(),
             adLimits: new AdLimits(),
             isFirstRun: true,
-            lastSyncedAt: default);
+            lastSyncedAt: default,
+            collectedSwords: new List<int>(),
+            masteryExp: 0);
     }
 
     public PlayerData With(
@@ -145,7 +155,9 @@ public class PlayerData
         Inventory items = null,
         AdLimits adLimits = null,
         bool? isFirstRun = null,
-        DateTime? lastSyncedAt = null)
+        DateTime? lastSyncedAt = null,
+        List<int> collectedSwords = null,
+        int? masteryExp = null)
     {
         return new PlayerData(
             gold ?? Gold,
@@ -154,6 +166,8 @@ public class PlayerData
             items ?? Items,
             adLimits ?? AdLimits,
             isFirstRun ?? IsFirstRun,
-            lastSyncedAt ?? LastSyncedAt);
+            lastSyncedAt ?? LastSyncedAt,
+            collectedSwords ?? CollectedSwords,
+            masteryExp ?? MasteryExp);
     }
 }

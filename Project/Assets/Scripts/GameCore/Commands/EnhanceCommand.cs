@@ -48,6 +48,11 @@ public class EnhanceCommand : Command
         var stats = currentState.PlayerData.Stats;
         var newTotalEnhances = stats.TotalEnhances + 1;
 
+        // Grant mastery experience (higher level = more exp)
+        var masteryExpGain = 1 + state.CurrentLevel;
+        var newMasteryExp = currentState.PlayerData.MasteryExp + masteryExpGain;
+        currentState = currentState.With(playerData: currentState.PlayerData.With(masteryExp: newMasteryExp));
+
         if (success)
         {
             var successResult = enhanceLogic.HandleSuccess(currentState, targetSword, context.SwordTable);

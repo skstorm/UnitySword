@@ -90,5 +90,5 @@ repo.Save(engine.State.PlayerData);
 
 renderer.Clear();
 renderer.PrintCenter("저장 완료. 안녕히!", ConsoleColor.Cyan);
-Console.CursorVisible = true;
+try { Console.CursorVisible = true; } catch (IOException) { }
 Console.WriteLine();

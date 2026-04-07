@@ -75,6 +75,21 @@ public class EventRenderer
                 ShouldSave = true;
                 break;
 
+            case ExchangeEvent e:
+                _r.Flash(ConsoleColor.Green);
+                Console.WriteLine();
+                _r.PrintCenter($"교환 완료! {e.ItemName} 획득 (-{e.FragmentCost} 파편)", ConsoleColor.Green);
+                _r.Pause(600);
+                ShouldSave = true;
+                break;
+
+            case ItemUsedEvent e:
+                _r.Flash(ConsoleColor.Cyan);
+                Console.WriteLine();
+                _r.PrintCenter($"♦ {e.ItemName} 사용! {e.Effect}", ConsoleColor.Cyan);
+                _r.Pause(600);
+                break;
+
             case CommandRejectedEvent e:
                 Console.WriteLine();
                 _r.PrintCenter($"[!] {GetRejectMessage(e.Reason)}", ConsoleColor.DarkRed);
@@ -95,6 +110,13 @@ public class EventRenderer
         "not_wooden_sword" => "나무검 상태에서만 지원금을 받을 수 있습니다",
         "has_enough_gold" => "강화할 골드가 충분합니다",
         "pending_ad_protection" => "진행 중인 작업이 있습니다",
+        "insufficient_fragments" => "파편이 부족합니다",
+        "already_collected" => "이미 수집한 검입니다",
+        "not_collectable" => "수집할 수 없는 검입니다",
+        "no_protection_amulets" => "보호 부적이 없습니다",
+        "no_blessing_scrolls" => "축복 주문서가 없습니다",
+        "no_gold_pouches" => "골드 주머니가 없습니다",
+        "already_protected" => "이미 보호가 활성화되어 있습니다",
         _ => reason
     };
 }
