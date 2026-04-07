@@ -59,6 +59,10 @@ namespace GameCore.Commands
             }
             else
             {
+                // Capture before HandleFail mutates state
+                var destroyedLevel = s.CurrentLevel;
+                var destroyedName = s.CurrentSword.Name;
+
                 var failResult = enhanceLogic.HandleFail(s, context.SwordTable, context);
                 s = failResult.NewState;
                 events.AddRange(failResult.Events);
@@ -67,7 +71,9 @@ namespace GameCore.Commands
                 var failEvt = failResult.Events.OfType<EnhanceFailEvent>().FirstOrDefault();
                 if (failEvt != null && failEvt.Destroyed && !s.PendingAdProtection)
                 {
-                    var destroyResult = FinalizeDestroy(s, context);
+                    var destroyResult = new DestroyFinalizationLogic().Finalize(
+                        s, destroyedLevel, destroyedName,
+                        context.SwordTable, context.MasteryTable);
                     s = destroyResult.NewState;
                     events.AddRange(destroyResult.Events);
                 }
@@ -82,23 +88,6 @@ namespace GameCore.Commands
             }
 
             return new CommandResult(s, events);
-        }
-
-        private LogicResult FinalizeDestroy(GameState state, GameContext context)
-        {
-            var events = new List<GameEvent>();
-            var s = state;
-
-            // Fragment reward (base from CSV, bonus from mastery)
-            var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
-            var fragResult = new FragmentLogic().GiveFragments(s, state.CurrentLevel,
-                fragmentBonus, context.SwordTable);
-            s = fragResult.NewState;
-            events.AddRange(fragResult.Events);
-
-            s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);
-            events.Add(new DestroyConfirmedEvent(state.CurrentLevel, state.CurrentSword.Name));
-            return new LogicResult(s, events);
         }
 
         private int GetEnhanceCost(GameState state, GameContext context)

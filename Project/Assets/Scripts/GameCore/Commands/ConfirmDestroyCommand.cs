@@ -15,24 +15,14 @@ namespace GameCore.Commands
 
         public override CommandResult Execute(GameState state, GameContext context)
         {
-            var events = new List<GameEvent>();
-            var s = state;
+            var destroyedLevel = state.CurrentLevel;
+            var destroyedName = state.CurrentSword.Name;
 
-            var destroyedLevel = s.CurrentLevel;
-            var destroyedName = s.CurrentSword.Name;
+            var result = new DestroyFinalizationLogic().Finalize(
+                state, destroyedLevel, destroyedName,
+                context.SwordTable, context.MasteryTable);
 
-            // Fragment reward (base from CSV, bonus from mastery)
-            var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
-            var fragResult = new FragmentLogic().GiveFragments(s, destroyedLevel,
-                fragmentBonus, context.SwordTable);
-            s = fragResult.NewState;
-            events.AddRange(fragResult.Events);
-
-            // Reset to wooden sword
-            s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);
-            events.Add(new DestroyConfirmedEvent(destroyedLevel, destroyedName));
-
-            return new CommandResult(s, events);
+            return new CommandResult(result.NewState, new List<GameEvent>(result.Events));
         }
     }
 }

@@ -20,5 +20,7 @@ namespace GameCore.Data
         }
 
         public int MaxLevel => _swords.Count > 0 ? _swords.Keys.Max() : 0;
+
+        public int CollectibleCount => _swords.Values.Count(s => s.Collectible);
     }
 }

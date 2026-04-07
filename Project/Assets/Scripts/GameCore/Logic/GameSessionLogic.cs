@@ -8,9 +8,12 @@ namespace GameCore.Logic
         public GameState CreateInitialState(PlayerData playerData, SwordDataTable swordTable)
         {
             var woodenSword = swordTable.GetSword(0);
+            var collectibleCount = swordTable.CollectibleCount;
             var data = playerData.IsFirstRun
-                ? playerData.With(gold: 200, isFirstRun: false)
-                : playerData;
+                ? playerData.With(gold: 200, isFirstRun: false,
+                    collection: playerData.Collection.With(totalCollectible: collectibleCount))
+                : playerData.With(
+                    collection: playerData.Collection.With(totalCollectible: collectibleCount));
             return new GameState(
                 currentSword: woodenSword,
                 currentLevel: 0,
