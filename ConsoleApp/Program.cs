@@ -9,6 +9,11 @@ using GameCore.Util;
 
 namespace ConsoleApp
 {
+    /// <summary>
+    /// ConsoleApp 진입점. CSV 데이터 로드 → 세이브 로드 → GameEngine 생성 →
+    /// ConsoleRenderer/MenuHandler 연결 → 게임 루프 실행.
+    /// autotest 모드: 결정론적 시드로 자동 강화/판매/파괴 시나리오를 실행한다.
+    /// </summary>
     class Program
     {
         static GameEngine _engine;
@@ -42,6 +47,8 @@ namespace ConsoleApp
             // 4. Load save or create new
             var saveManager = new SaveManager();
             var playerData = saveManager.Load() ?? new PlayerData();
+            if (saveManager.LastLoadCorrupted)
+                Console.WriteLine("  [!] 저장 파일이 손상되어 새로 시작합니다.");
 
             // 5. Create engine with mastery table
             var random = new SeededRandomProvider(Environment.TickCount);

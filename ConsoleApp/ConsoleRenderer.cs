@@ -5,6 +5,11 @@ using GameCore.Models;
 
 namespace ConsoleApp
 {
+    /// <summary>
+    /// 콘솔 전용 렌더러. GameState 상태 표시와 GameEvent 색상 출력을 담당한다.
+    /// GameEngine.OnEvent에 HandleEvent를 구독하여 이벤트 기반으로 동작한다.
+    /// Unity 등 다른 플랫폼에서는 이 클래스를 대체하여 자체 UI 렌더링을 구현한다.
+    /// </summary>
     public class ConsoleRenderer
     {
         private readonly SwordDataTable _swordTable;
@@ -14,6 +19,7 @@ namespace ConsoleApp
             _swordTable = swordTable;
         }
 
+        /// <summary>현재 게임 상태(검, 골드, 파편, 마스터리, 도감, 통계)를 콘솔에 출력한다.</summary>
         public void PrintStatus(GameState state)
         {
             var sword = state.CurrentSword;
@@ -37,6 +43,7 @@ namespace ConsoleApp
             if (level < _swordTable.MaxLevel)
             {
                 var next = _swordTable.GetSword(level + 1);
+                // +15 이상은 성공률을 ???로 숨김 (게임 디자인 의도)
                 var rateStr = level + 1 <= 14 ? $"{next.SuccessRate * 100:F1}%" : "???";
                 Console.WriteLine($"  다음 강화: {rateStr} / {next.EnhanceCost:N0}G");
             }
@@ -58,6 +65,11 @@ namespace ConsoleApp
                 Console.WriteLine($"  💀 연속 파괴 {stats.CurrentConsecutiveFail}회...");
         }
 
+        /// <summary>
+        /// GameEvent를 받아 콘솔에 색상별로 출력한다.
+        /// GameEngine.OnEvent += HandleEvent 형태로 구독하여 사용한다.
+        /// 거부 사유(CommandRejectedEvent)는 한글 매핑하여 표시한다.
+        /// </summary>
         public void HandleEvent(GameEvent evt)
         {
             switch (evt)

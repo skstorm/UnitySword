@@ -6,15 +6,24 @@ using GameCore.Models;
 
 namespace ConsoleApp
 {
+    /// <summary>
+    /// 파일 시스템 기반 PlayerData 저장/로드 관리자.
+    /// PlayerData를 JSON DTO(SaveData)로 변환하여 save.json에 기록한다.
+    /// Unity 등 다른 플랫폼에서는 이 클래스를 대체하여 자체 저장소(PlayerPrefs 등)를 사용한다.
+    /// </summary>
     public class SaveManager
     {
         private readonly string _savePath;
+
+        /// <summary>마지막 Load에서 파일 손상이 감지되었는지 여부.</summary>
+        public bool LastLoadCorrupted { get; private set; }
 
         public SaveManager(string savePath = null)
         {
             _savePath = savePath ?? Path.Combine(AppContext.BaseDirectory, "save.json");
         }
 
+        /// <summary>PlayerData를 JSON 파일로 직렬화하여 저장한다.</summary>
         public void Save(PlayerData data)
         {
             var saveData = new SaveData
@@ -42,8 +51,14 @@ namespace ConsoleApp
             File.WriteAllText(_savePath, json);
         }
 
+        /// <summary>
+        /// JSON 파일에서 PlayerData를 역직렬화하여 로드한다.
+        /// 파일이 없거나 손상된 경우 null을 반환하며, LastLoadCorrupted로 손상 여부를 확인할 수 있다.
+        /// </summary>
         public PlayerData Load()
         {
+            LastLoadCorrupted = false;
+
             if (!File.Exists(_savePath))
                 return null;
 
@@ -54,7 +69,7 @@ namespace ConsoleApp
 
                 if (saveData == null)
                 {
-                    Console.WriteLine("  [!] 저장 파일이 손상되어 새로 시작합니다.");
+                    LastLoadCorrupted = true;
                     return null;
                 }
 
@@ -96,11 +111,12 @@ namespace ConsoleApp
             }
             catch (JsonException)
             {
-                Console.WriteLine("  [!] 저장 파일이 손상되어 새로 시작합니다.");
+                LastLoadCorrupted = true;
                 return null;
             }
         }
 
+        /// <summary>JSON 직렬화용 DTO. PlayerData의 평탄화된 스냅샷.</summary>
         private class SaveData
         {
             public int Gold { get; set; }
