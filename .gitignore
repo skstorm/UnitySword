@@ -37,6 +37,10 @@ desktop.ini
 ConsoleApp/bin/
 ConsoleApp/obj/
 
+# .NET / GameCore.Tests
+GameCore.Tests/bin/
+GameCore.Tests/obj/
+
 # Claude Code
 .claude/settings.local.json
 
