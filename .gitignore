@@ -41,6 +41,11 @@ ConsoleApp/obj/
 GameCore.Tests/bin/
 GameCore.Tests/obj/
 
+# .NET / TerminalUI
+TerminalUI/bin/
+TerminalUI/obj/
+!TerminalUI/*.csproj
+
 # Claude Code
 .claude/settings.local.json
 

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>TerminalUI</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Project\Assets\Scripts\GameCore\**\*.cs" LinkBase="GameCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\Project\Assets\Resources\Data\swords.csv" CopyToOutputDirectory="PreserveNewest" Link="Data\swords.csv" />
+    <Content Include="..\doc\mastery_levels.csv" CopyToOutputDirectory="PreserveNewest" Link="Data\mastery_levels.csv" />
+  </ItemGroup>
+</Project>
