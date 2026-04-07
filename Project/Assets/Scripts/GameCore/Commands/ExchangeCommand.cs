@@ -9,7 +9,7 @@ namespace GameCore.Commands
     {
         public const int ProtectionAmuletCost = 30;
         public const int GoldPouchCost = 10;
-        public const int GoldPouchReward = 50;
+        public const int GoldPouchReward = 500;
 
         public string ItemType { get; }
 
@@ -24,11 +24,11 @@ namespace GameCore.Commands
 
             switch (ItemType)
             {
-                case "protection_amulet":
+                case ItemTypes.ProtectionAmulet:
                     if (state.PlayerData.Fragments < ProtectionAmuletCost)
                         return "insufficient_fragments";
                     break;
-                case "gold_pouch":
+                case ItemTypes.GoldPouch:
                     if (state.PlayerData.Fragments < GoldPouchCost)
                         return "insufficient_fragments";
                     break;
@@ -46,23 +46,23 @@ namespace GameCore.Commands
 
             switch (ItemType)
             {
-                case "protection_amulet":
+                case ItemTypes.ProtectionAmulet:
                 {
                     var newFragments = s.PlayerData.Fragments - ProtectionAmuletCost;
                     var newAmulets = s.PlayerData.Inventory.ProtectionAmulets + 1;
                     s = s.With(playerData: s.PlayerData.With(
                         fragments: newFragments,
                         inventory: s.PlayerData.Inventory.With(protectionAmulets: newAmulets)));
-                    events.Add(new ExchangeEvent("protection_amulet", ProtectionAmuletCost, newFragments));
+                    events.Add(new ExchangeEvent(ItemTypes.ProtectionAmulet, ProtectionAmuletCost, newFragments));
                     break;
                 }
-                case "gold_pouch":
+                case ItemTypes.GoldPouch:
                 {
                     var newFragments = s.PlayerData.Fragments - GoldPouchCost;
                     s = s.With(playerData: s.PlayerData.With(fragments: newFragments));
-                    events.Add(new ExchangeEvent("gold_pouch", GoldPouchCost, newFragments));
+                    events.Add(new ExchangeEvent(ItemTypes.GoldPouch, GoldPouchCost, newFragments));
 
-                    var addResult = new EconomyLogic().AddGold(s, GoldPouchReward, "gold_pouch");
+                    var addResult = new EconomyLogic().AddGold(s, GoldPouchReward, ItemTypes.GoldPouch);
                     s = addResult.NewState;
                     events.AddRange(addResult.Events);
                     break;

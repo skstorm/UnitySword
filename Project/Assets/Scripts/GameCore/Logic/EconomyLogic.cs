@@ -15,7 +15,9 @@ namespace GameCore.Logic
         public LogicResult SpendGold(GameState state, int cost)
         {
             var newGold = state.PlayerData.Gold - cost;
-            var newState = state.With(playerData: state.PlayerData.With(gold: newGold));
+            var newStats = state.PlayerData.Stats.With(
+                totalGoldSpent: state.PlayerData.Stats.TotalGoldSpent + cost);
+            var newState = state.With(playerData: state.PlayerData.With(gold: newGold, stats: newStats));
             return new LogicResult(newState, new List<GameEvent>
             {
                 new GoldChangeEvent(-cost, newGold, "enhance")

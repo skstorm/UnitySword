@@ -21,15 +21,12 @@ namespace GameCore.Commands
             var destroyedLevel = s.CurrentLevel;
             var destroyedName = s.CurrentSword.Name;
 
-            // Fragment reward
-            if (context.MasteryTable != null)
-            {
-                var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
-                var fragResult = new FragmentLogic().GiveFragments(s, destroyedLevel,
-                    fragmentBonus, context.SwordTable);
-                s = fragResult.NewState;
-                events.AddRange(fragResult.Events);
-            }
+            // Fragment reward (base from CSV, bonus from mastery)
+            var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
+            var fragResult = new FragmentLogic().GiveFragments(s, destroyedLevel,
+                fragmentBonus, context.SwordTable);
+            s = fragResult.NewState;
+            events.AddRange(fragResult.Events);
 
             // Reset to wooden sword
             s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);

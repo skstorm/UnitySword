@@ -13,6 +13,15 @@ namespace GameCore.Logic
             var events = new List<GameEvent>();
             var mastery = state.PlayerData.Mastery;
             var newAttempts = mastery.TotalAttempts + 1;
+
+            if (masteryTable == null)
+            {
+                var newMasteryNoTable = mastery.With(totalAttempts: newAttempts);
+                var newStateNoTable = state.With(playerData: state.PlayerData.With(mastery: newMasteryNoTable));
+                events.Add(new MasteryExpEvent(newAttempts, mastery.Level));
+                return new LogicResult(newStateNoTable, events);
+            }
+
             var currentLevel = mastery.Level;
 
             // Check for level ups (may skip multiple levels if exp is high enough)

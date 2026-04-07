@@ -20,7 +20,8 @@ namespace GameCore.Logic
             return random.NextDouble() < effectiveRate;
         }
 
-        public LogicResult HandleSuccess(GameState state, Sword newSword, SwordDataTable table)
+        public LogicResult HandleSuccess(GameState state, Sword newSword, SwordDataTable table,
+            int discountedNextCost = -1)
         {
             var newLevel = state.CurrentLevel + 1;
             var newState = state.With(
@@ -33,13 +34,14 @@ namespace GameCore.Logic
             var newStats = stats.With(
                 totalEnhanceAttempts: stats.TotalEnhanceAttempts + 1,
                 highestEnhanceLevel: Math.Max(stats.HighestEnhanceLevel, newLevel),
+                weeklyHighestLevel: Math.Max(stats.WeeklyHighestLevel, newLevel),
                 maxConsecutiveSuccess: Math.Max(stats.MaxConsecutiveSuccess, newConsecutiveSuccess),
                 currentConsecutiveSuccess: newConsecutiveSuccess,
                 currentConsecutiveFail: 0);
             newState = newState.With(playerData: newState.PlayerData.With(stats: newStats));
 
             var nextSword = table.GetSword(newLevel + 1);
-            var nextCost = nextSword?.EnhanceCost ?? 0;
+            var nextCost = discountedNextCost >= 0 ? discountedNextCost : (nextSword?.EnhanceCost ?? 0);
 
             return new LogicResult(newState, new List<GameEvent>
             {
@@ -50,10 +52,27 @@ namespace GameCore.Logic
         public LogicResult HandleFail(GameState state, SwordDataTable table, GameContext context)
         {
             var events = new List<GameEvent>();
-
-            // Update statistics
             var stats = state.PlayerData.Stats;
             var newConsecutiveFail = stats.CurrentConsecutiveFail + 1;
+
+            if (state.HasActiveProtection)
+            {
+                // Protection amulet absorbs the destruction — no destroy count
+                var protectedStats = stats.With(
+                    totalEnhanceAttempts: stats.TotalEnhanceAttempts + 1,
+                    maxConsecutiveFail: Math.Max(stats.MaxConsecutiveFail, newConsecutiveFail),
+                    currentConsecutiveFail: newConsecutiveFail,
+                    currentConsecutiveSuccess: 0);
+                var protectedState = state.With(
+                    hasActiveProtection: false,
+                    playerData: state.PlayerData.With(stats: protectedStats));
+                events.Add(new EnhanceFailEvent(
+                    state.CurrentLevel, state.CurrentSword.Name,
+                    0, 0, false, destroyed: false));
+                return new LogicResult(protectedState, events);
+            }
+
+            // Actual destruction
             var newStats = stats.With(
                 totalEnhanceAttempts: stats.TotalEnhanceAttempts + 1,
                 totalDestroys: stats.TotalDestroys + 1,
@@ -62,24 +81,12 @@ namespace GameCore.Logic
                 currentConsecutiveSuccess: 0);
             var newState = state.With(playerData: state.PlayerData.With(stats: newStats));
 
-            if (state.HasActiveProtection)
-            {
-                // Protection amulet absorbs the destruction
-                newState = newState.With(hasActiveProtection: false);
-                events.Add(new EnhanceFailEvent(
-                    state.CurrentLevel, state.CurrentSword.Name,
-                    0, 0, false, destroyed: false));
-                return new LogicResult(newState, events);
-            }
-
-            // P1: no ad protection, always destroy immediately
-            // P2: check ad protection availability
             var adAvailable = state.PlayerData.AdLimits.AdProtectionUsedToday < 2;
             newState = newState.With(pendingAdProtection: adAvailable);
 
             events.Add(new EnhanceFailEvent(
                 state.CurrentLevel, state.CurrentSword.Name,
-                state.CurrentSword.FragmentReward, 0, adAvailable, destroyed: true));
+                0, 0, adAvailable, destroyed: true));
 
             return new LogicResult(newState, events);
         }

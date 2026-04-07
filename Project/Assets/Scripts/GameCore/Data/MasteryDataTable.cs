@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using GameCore.Models;
 
 namespace GameCore.Data
@@ -14,7 +15,7 @@ namespace GameCore.Data
             _levels = new Dictionary<int, MasteryLevel>();
             foreach (var level in levels)
                 _levels[level.Level] = level;
-            MaxLevel = levels.Count > 0 ? levels[levels.Count - 1].Level : 0;
+            MaxLevel = _levels.Count > 0 ? _levels.Keys.Max() : 0;
         }
 
         public MasteryLevel GetLevel(int level)

@@ -114,7 +114,7 @@ namespace GameCore.Tests.Commands
             var result = new ExchangeCommand("gold_pouch").Execute(state, ctx);
 
             Assert.That(result.NewState.PlayerData.Fragments, Is.EqualTo(0));
-            Assert.That(result.NewState.PlayerData.Gold, Is.EqualTo(150)); // 100+50
+            Assert.That(result.NewState.PlayerData.Gold, Is.EqualTo(600)); // 100+500
         }
 
         [Test]
@@ -130,7 +130,7 @@ namespace GameCore.Tests.Commands
             Assert.That(result.Events.OfType<GoldChangeEvent>().Count(), Is.EqualTo(1));
 
             var goldEvt = result.Events.OfType<GoldChangeEvent>().Single();
-            Assert.That(goldEvt.Amount, Is.EqualTo(50));
+            Assert.That(goldEvt.Amount, Is.EqualTo(500));
         }
     }
 }

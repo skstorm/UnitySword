@@ -3,10 +3,12 @@ namespace GameCore.Models
     public class Statistics
     {
         public int HighestEnhanceLevel { get; }
+        public int WeeklyHighestLevel { get; }
         public int TotalDestroys { get; }
         public int TotalEnhanceAttempts { get; }
         public int TotalSells { get; }
         public int TotalGoldEarned { get; }
+        public int TotalGoldSpent { get; }
         public int MaxConsecutiveSuccess { get; }
         public int MaxConsecutiveFail { get; }
         public int CurrentConsecutiveSuccess { get; }
@@ -14,20 +16,24 @@ namespace GameCore.Models
 
         public Statistics(
             int highestEnhanceLevel = 0,
+            int weeklyHighestLevel = 0,
             int totalDestroys = 0,
             int totalEnhanceAttempts = 0,
             int totalSells = 0,
             int totalGoldEarned = 0,
+            int totalGoldSpent = 0,
             int maxConsecutiveSuccess = 0,
             int maxConsecutiveFail = 0,
             int currentConsecutiveSuccess = 0,
             int currentConsecutiveFail = 0)
         {
             HighestEnhanceLevel = highestEnhanceLevel;
+            WeeklyHighestLevel = weeklyHighestLevel;
             TotalDestroys = totalDestroys;
             TotalEnhanceAttempts = totalEnhanceAttempts;
             TotalSells = totalSells;
             TotalGoldEarned = totalGoldEarned;
+            TotalGoldSpent = totalGoldSpent;
             MaxConsecutiveSuccess = maxConsecutiveSuccess;
             MaxConsecutiveFail = maxConsecutiveFail;
             CurrentConsecutiveSuccess = currentConsecutiveSuccess;
@@ -36,10 +42,12 @@ namespace GameCore.Models
 
         public Statistics With(
             int? highestEnhanceLevel = null,
+            int? weeklyHighestLevel = null,
             int? totalDestroys = null,
             int? totalEnhanceAttempts = null,
             int? totalSells = null,
             int? totalGoldEarned = null,
+            int? totalGoldSpent = null,
             int? maxConsecutiveSuccess = null,
             int? maxConsecutiveFail = null,
             int? currentConsecutiveSuccess = null,
@@ -47,10 +55,12 @@ namespace GameCore.Models
         {
             return new Statistics(
                 highestEnhanceLevel ?? HighestEnhanceLevel,
+                weeklyHighestLevel ?? WeeklyHighestLevel,
                 totalDestroys ?? TotalDestroys,
                 totalEnhanceAttempts ?? TotalEnhanceAttempts,
                 totalSells ?? TotalSells,
                 totalGoldEarned ?? TotalGoldEarned,
+                totalGoldSpent ?? TotalGoldSpent,
                 maxConsecutiveSuccess ?? MaxConsecutiveSuccess,
                 maxConsecutiveFail ?? MaxConsecutiveFail,
                 currentConsecutiveSuccess ?? CurrentConsecutiveSuccess,

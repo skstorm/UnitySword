@@ -43,7 +43,17 @@ namespace GameCore.Commands
             // 4. Handle success or failure
             if (success)
             {
-                var successResult = enhanceLogic.HandleSuccess(s, targetSword, context.SwordTable);
+                // Calculate discounted next cost for the event
+                var nextLevel = s.CurrentLevel + 2; // after success, next target
+                var nextSword = context.SwordTable.GetSword(nextLevel);
+                var discountedNextCost = nextSword?.EnhanceCost ?? 0;
+                if (context.MasteryTable != null && nextSword != null)
+                {
+                    var discount = new MasteryLogic().GetCostDiscount(s, context.MasteryTable);
+                    discountedNextCost = (int)(discountedNextCost * (1.0 - discount));
+                }
+
+                var successResult = enhanceLogic.HandleSuccess(s, targetSword, context.SwordTable, discountedNextCost);
                 s = successResult.NewState;
                 events.AddRange(successResult.Events);
             }
@@ -79,15 +89,12 @@ namespace GameCore.Commands
             var events = new List<GameEvent>();
             var s = state;
 
-            // Fragment reward
-            if (context.MasteryTable != null)
-            {
-                var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
-                var fragResult = new FragmentLogic().GiveFragments(s, state.CurrentLevel,
-                    fragmentBonus, context.SwordTable);
-                s = fragResult.NewState;
-                events.AddRange(fragResult.Events);
-            }
+            // Fragment reward (base from CSV, bonus from mastery)
+            var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
+            var fragResult = new FragmentLogic().GiveFragments(s, state.CurrentLevel,
+                fragmentBonus, context.SwordTable);
+            s = fragResult.NewState;
+            events.AddRange(fragResult.Events);
 
             s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);
             events.Add(new DestroyConfirmedEvent(state.CurrentLevel, state.CurrentSword.Name));
@@ -97,7 +104,8 @@ namespace GameCore.Commands
         private int GetEnhanceCost(GameState state, GameContext context)
         {
             var targetSword = context.SwordTable.GetSword(state.CurrentLevel + 1);
-            var baseCost = targetSword?.EnhanceCost ?? 0;
+            if (targetSword == null) return int.MaxValue;
+            var baseCost = targetSword.EnhanceCost;
 
             if (context.MasteryTable != null)
             {

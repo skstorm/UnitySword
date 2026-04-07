@@ -148,7 +148,7 @@ namespace GameCore.Tests
 
             engine.Dispatch(new ExchangeCommand("gold_pouch"));
 
-            Assert.That(engine.State.PlayerData.Gold, Is.EqualTo(150));
+            Assert.That(engine.State.PlayerData.Gold, Is.EqualTo(600)); // 100+500
             Assert.That(engine.State.PlayerData.Fragments, Is.EqualTo(10));
         }
 

@@ -5,14 +5,14 @@ namespace GameCore.Events
         public int PrevLevel { get; }
         public int NewLevel { get; }
         public string NewSwordName { get; }
-        public int GoldSpent { get; }
+        public int NextEnhanceCost { get; }
 
-        public EnhanceSuccessEvent(int prevLevel, int newLevel, string newSwordName, int goldSpent)
+        public EnhanceSuccessEvent(int prevLevel, int newLevel, string newSwordName, int nextEnhanceCost)
         {
             PrevLevel = prevLevel;
             NewLevel = newLevel;
             NewSwordName = newSwordName;
-            GoldSpent = goldSpent;
+            NextEnhanceCost = nextEnhanceCost;
         }
     }
 

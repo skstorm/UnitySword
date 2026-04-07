@@ -26,7 +26,7 @@ namespace GameCore.Commands
                 playerData: s.PlayerData.With(
                     inventory: s.PlayerData.Inventory.With(protectionAmulets: newAmulets)));
 
-            events.Add(new UseItemEvent("protection_amulet", newAmulets));
+            events.Add(new UseItemEvent(ItemTypes.ProtectionAmulet, newAmulets));
 
             return new CommandResult(s, events);
         }
