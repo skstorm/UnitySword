@@ -52,9 +52,9 @@ namespace GameCore.Tests.Data
         {
             var table = TestHelper.LoadFullTable();
 
-            Assert.That(table.GetSword(1).SellPrice, Is.EqualTo(4));
-            Assert.That(table.GetSword(9).SellPrice, Is.EqualTo(505));
-            Assert.That(table.GetSword(20).SellPrice, Is.EqualTo(133950));
+            Assert.That(table.GetSword(1).SellPrice, Is.EqualTo(3));
+            Assert.That(table.GetSword(9).SellPrice, Is.EqualTo(760));
+            Assert.That(table.GetSword(20).SellPrice, Is.EqualTo(1670000));
         }
 
         [Test]
@@ -88,10 +88,10 @@ namespace GameCore.Tests.Data
         {
             var table = TestHelper.LoadFullTable();
 
-            Assert.That(table.GetSword(1).ReturnRate, Is.EqualTo(0.70));
-            Assert.That(table.GetSword(9).ReturnRate, Is.EqualTo(1.00));
-            Assert.That(table.GetSword(14).ReturnRate, Is.EqualTo(1.60));
-            Assert.That(table.GetSword(20).ReturnRate, Is.EqualTo(2.00));
+            Assert.That(table.GetSword(1).ReturnRate, Is.EqualTo(0.60));
+            Assert.That(table.GetSword(9).ReturnRate, Is.EqualTo(1.50));
+            Assert.That(table.GetSword(14).ReturnRate, Is.EqualTo(5.30));
+            Assert.That(table.GetSword(20).ReturnRate, Is.EqualTo(25.00));
         }
 
         [Test]
