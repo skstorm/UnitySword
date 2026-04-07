@@ -6,8 +6,10 @@ using GameCore.Models;
 
 namespace GameCore.Commands;
 
+/// <summary>현재 검을 판매하고 골드를 획득한 뒤 나무검으로 리셋하는 커맨드.</summary>
 public class SellCommand : Command
 {
+    /// <summary>나무검은 판매 불가. 광고 보호 대기 중에도 불가.</summary>
     public override string Validate(GameState state, GameContext context)
     {
         if (state.CurrentLevel == 0)
@@ -21,10 +23,10 @@ public class SellCommand : Command
 
     public override CommandResult Execute(GameState state, GameContext context)
     {
-        var economyLogic = new EconomyLogic();
         var sellPrice = state.CurrentSword.SellPrice;
 
-        var addResult = economyLogic.AddGold(state, sellPrice, "sell_sword");
+        // 판매 대금 지급
+        var addResult = context.EconomyLogic.AddGold(state, sellPrice, "sell_sword");
         var currentState = addResult.NewState;
         var allEvents = new List<GameEvent>(addResult.Events);
 
@@ -33,6 +35,7 @@ public class SellCommand : Command
             state.CurrentLevel,
             sellPrice));
 
+        // 나무검으로 리셋
         currentState = GameSessionLogic.ResetToWoodenSword(currentState, context.SwordTable);
 
         return new CommandResult(currentState, allEvents);

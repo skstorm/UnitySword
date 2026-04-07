@@ -2,6 +2,7 @@ using System;
 
 namespace GameCore.Events;
 
+/// <summary>파편 교환 이벤트. 어떤 아이템을 몇 파편에 교환했는지 기록.</summary>
 public class ExchangeEvent : GameEvent
 {
     public string ItemName { get; }
@@ -17,6 +18,7 @@ public class ExchangeEvent : GameEvent
     }
 }
 
+/// <summary>아이템 사용 이벤트. 사용한 아이템과 적용된 효과 설명을 포함.</summary>
 public class ItemUsedEvent : GameEvent
 {
     public string ItemName { get; }

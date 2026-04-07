@@ -1,5 +1,8 @@
 namespace CuiApp.Rendering;
 
+/// <summary>
+/// 콘솔 출력 유틸리티. 색상, 중앙 정렬, 박스 그리기, CJK 폭 계산 등을 제공.
+/// </summary>
 public class ConsoleRenderer
 {
     public int Width { get; }
@@ -11,8 +14,9 @@ public class ConsoleRenderer
         UseAscii = useAscii;
         UseColor = useColor;
 
+        // 파이프/리디렉션 환경에서는 WindowWidth 접근 시 예외 발생 가능
         try { Width = Math.Max(Console.WindowWidth, 36); }
-        catch { Width = 40; }
+        catch (IOException) { Width = 40; }
     }
 
     public void Clear()

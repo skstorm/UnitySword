@@ -1,17 +1,2 @@
-using System.Collections.Generic;
-using GameCore.Events;
-using GameCore.Models;
-
-namespace GameCore.Util;
-
-public class LogicResult
-{
-    public GameState NewState { get; }
-    public List<GameEvent> Events { get; }
-
-    public LogicResult(GameState newState, List<GameEvent> events = null)
-    {
-        NewState = newState;
-        Events = events ?? new List<GameEvent>();
-    }
-}
+// 이 파일은 더 이상 사용되지 않습니다.
+// CommandResult로 통합되었습니다. (Phase 1 리팩터링)

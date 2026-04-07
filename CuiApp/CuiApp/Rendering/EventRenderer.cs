@@ -2,14 +2,20 @@ using GameCore.Events;
 
 namespace CuiApp.Rendering;
 
+/// <summary>
+/// 게임 이벤트를 큐에 모았다가 순차적으로 콘솔에 렌더링한다.
+/// 서스펜스 연출, 도발 메시지, 세션 통계 추적도 담당.
+/// </summary>
 public class EventRenderer
 {
     private readonly Queue<GameEvent> _queue = new();
     private readonly ConsoleRenderer _r;
     private readonly Random _random = new();
+
+    /// <summary>상태 변경이 있었으므로 저장이 필요한지 여부.</summary>
     public bool ShouldSave { get; private set; }
 
-    // Session tracking for report
+    // ── 세션 통계 (종료 시 리포트 표시용) ──
     public int SessionEnhances { get; private set; }
     public int SessionDestroys { get; private set; }
     public int SessionGoldDelta { get; private set; }

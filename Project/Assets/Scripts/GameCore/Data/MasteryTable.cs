@@ -1,5 +1,6 @@
 namespace GameCore.Data;
 
+/// <summary>숙련도 레벨 1단계의 정보.</summary>
 public class MasteryLevel
 {
     public int Level { get; }
@@ -14,6 +15,10 @@ public class MasteryLevel
     }
 }
 
+/// <summary>
+/// 숙련도 시스템. 강화 횟수(경험치)에 따라 레벨과 칭호를 부여한다.
+/// Lv.1(초보 장인) ~ Lv.10(마스터 스미스), 레벨이 오르면 비용 할인 등 혜택.
+/// </summary>
 public class MasteryTable
 {
     private static readonly MasteryLevel[] Levels =

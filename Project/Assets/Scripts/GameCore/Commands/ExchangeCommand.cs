@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GameCore.Data;
 using GameCore.Engine;
 using GameCore.Events;
 using GameCore.Logic;
@@ -6,11 +7,12 @@ using GameCore.Models;
 
 namespace GameCore.Commands;
 
+/// <summary>파편으로 아이템을 교환하는 커맨드.</summary>
 public enum ExchangeItemType
 {
-    ProtectionAmulet,  // 보호 부적 — 10 파편
-    BlessingScroll,    // 축복 주문서 — 15 파편
-    GoldPouch          // 골드 주머니 — 5 파편 → +500G
+    ProtectionAmulet,  // 보호 부적
+    BlessingScroll,    // 축복 주문서
+    GoldPouch          // 골드 주머니
 }
 
 public class ExchangeCommand : Command
@@ -22,6 +24,7 @@ public class ExchangeCommand : Command
         ItemType = itemType;
     }
 
+    /// <summary>파편이 충분한지 검증한다.</summary>
     public override string Validate(GameState state, GameContext context)
     {
         var cost = GetFragmentCost();
@@ -30,6 +33,7 @@ public class ExchangeCommand : Command
         return null;
     }
 
+    /// <summary>파편을 차감하고 해당 아이템을 인벤토리에 추가한다.</summary>
     public override CommandResult Execute(GameState state, GameContext context)
     {
         var cost = GetFragmentCost();
@@ -45,23 +49,23 @@ public class ExchangeCommand : Command
                 newPlayerData = state.PlayerData.With(
                     fragments: newFragments,
                     items: items.With(protectionAmulets: items.ProtectionAmulets + 1));
-                events.Add(new ExchangeEvent("보호 부적", cost, newFragments));
+                events.Add(new ExchangeEvent(GameConstants.ProtectionAmuletName, cost, newFragments));
                 break;
 
             case ExchangeItemType.BlessingScroll:
                 newPlayerData = state.PlayerData.With(
                     fragments: newFragments,
                     items: items.With(blessingScrolls: items.BlessingScrolls + 1));
-                events.Add(new ExchangeEvent("축복 주문서", cost, newFragments));
+                events.Add(new ExchangeEvent(GameConstants.BlessingScrollName, cost, newFragments));
                 break;
 
             case ExchangeItemType.GoldPouch:
-                var newGold = state.PlayerData.Gold + 500;
+                var newGold = state.PlayerData.Gold + GameConstants.GoldPouchGoldAmount;
                 newPlayerData = state.PlayerData.With(
                     fragments: newFragments,
                     gold: newGold);
-                events.Add(new ExchangeEvent("골드 주머니", cost, newFragments));
-                events.Add(new GoldChangeEvent(500, newGold, "exchange_gold_pouch"));
+                events.Add(new ExchangeEvent(GameConstants.GoldPouchName, cost, newFragments));
+                events.Add(new GoldChangeEvent(GameConstants.GoldPouchGoldAmount, newGold, "exchange_gold_pouch"));
                 break;
 
             default:
@@ -73,19 +77,21 @@ public class ExchangeCommand : Command
         return new CommandResult(newState, events);
     }
 
+    /// <summary>아이템 종류별 교환에 필요한 파편 수를 반환한다.</summary>
     public int GetFragmentCost() => ItemType switch
     {
-        ExchangeItemType.ProtectionAmulet => 10,
-        ExchangeItemType.BlessingScroll => 15,
-        ExchangeItemType.GoldPouch => 5,
+        ExchangeItemType.ProtectionAmulet => GameConstants.ProtectionAmuletFragmentCost,
+        ExchangeItemType.BlessingScroll => GameConstants.BlessingScrollFragmentCost,
+        ExchangeItemType.GoldPouch => GameConstants.GoldPouchFragmentCost,
         _ => 0
     };
 
+    /// <summary>아이템 종류의 한글 표시명을 반환한다.</summary>
     public static string GetItemName(ExchangeItemType type) => type switch
     {
-        ExchangeItemType.ProtectionAmulet => "보호 부적",
-        ExchangeItemType.BlessingScroll => "축복 주문서",
-        ExchangeItemType.GoldPouch => "골드 주머니",
+        ExchangeItemType.ProtectionAmulet => GameConstants.ProtectionAmuletName,
+        ExchangeItemType.BlessingScroll => GameConstants.BlessingScrollName,
+        ExchangeItemType.GoldPouch => GameConstants.GoldPouchName,
         _ => "???"
     };
 }
