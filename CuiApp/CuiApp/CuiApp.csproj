@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Project\Assets\Scripts\GameCore\**\*.cs" LinkBase="GameCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\doc\swords.csv" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\doc\mastery_levels.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
