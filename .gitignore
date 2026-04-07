@@ -13,8 +13,6 @@
 # IDE
 .vs/
 .vscode/
-*.csproj
-*.sln
 *.slnx
 *.suo
 *.tmp
@@ -27,6 +25,17 @@
 *.mdb
 *.opendb
 *.VC.db
+
+# Unity auto-generated csproj/sln (Unity가 자동 생성하는 것들)
+/Project/*.csproj
+/Project/*.sln
+
+# CuiApp build output
+/CuiApp/**/bin/
+/CuiApp/**/obj/
+
+# Save file
+save.json
 
 # OS
 .DS_Store
