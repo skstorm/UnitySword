@@ -36,5 +36,8 @@ desktop.ini
 # Claude Code
 .claude/settings.local.json
 
+# Superpowers
+.superpowers/
+
 # OMC
 .omc/
