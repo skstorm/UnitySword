@@ -16,58 +16,58 @@ namespace ConsoleApp
 
         static void Main(string[] args)
         {
+            // 1. Load CSV data
             var csvContent = LoadCsv();
             var swords = new SwordDataLoader().Parse(csvContent);
             _swordTable = new SwordDataTable(swords);
 
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+            // 2. autotest branch (unchanged)
             if (args.Length > 0 && args[0] == "autotest")
             {
                 RunAutoTest();
                 return;
             }
 
-            // Create engine
+            // 3. Load mastery data
+            var masteryCsv = LoadMasteryCsv();
+            MasteryDataTable masteryTable = null;
+            if (masteryCsv != null)
+            {
+                var masteryLevels = new MasteryDataLoader().Parse(masteryCsv);
+                masteryTable = new MasteryDataTable(masteryLevels);
+            }
+
+            // 4. Load save or create new
+            var saveManager = new SaveManager();
+            var playerData = saveManager.Load() ?? new PlayerData();
+
+            // 5. Create engine with mastery table
             var random = new SeededRandomProvider(Environment.TickCount);
             var time = new FakeTimeProvider();
-            var context = new GameContext(random, time, _swordTable);
-            _engine = GameEngine.Create(new PlayerData(), context);
-            _engine.OnEvent += HandleEvent;
+            var context = new GameContext(random, time, _swordTable, masteryTable);
+            _engine = GameEngine.Create(playerData, context);
+
+            // 6. Create renderer and menu handler
+            var renderer = new ConsoleRenderer(_swordTable);
+            var menuHandler = new MenuHandler(_engine, _swordTable, saveManager);
+            _engine.OnEvent += renderer.HandleEvent;
 
             Console.WriteLine("=== 검강화 게임 ===");
             Console.WriteLine();
 
-            // Game loop
+            // 7. Game loop
             while (true)
             {
-                PrintStatus();
-                PrintMenu();
+                renderer.PrintStatus(_engine.State);
+                menuHandler.PrintMenu(_engine.State);
 
                 var key = Console.ReadKey(true).Key;
                 Console.WriteLine();
 
-                switch (key)
-                {
-                    case ConsoleKey.D1:
-                    case ConsoleKey.NumPad1:
-                        _engine.Dispatch(new EnhanceCommand());
-                        break;
-                    case ConsoleKey.D2:
-                    case ConsoleKey.NumPad2:
-                        _engine.Dispatch(new SellCommand());
-                        break;
-                    case ConsoleKey.D3:
-                    case ConsoleKey.NumPad3:
-                        _engine.Dispatch(new ConfirmDestroyCommand());
-                        break;
-                    case ConsoleKey.Q:
-                        Console.WriteLine("게임을 종료합니다.");
-                        return;
-                    default:
-                        Console.WriteLine("잘못된 입력입니다.");
-                        break;
-                }
+                if (!menuHandler.HandleInput(key))
+                    return;
 
                 Console.WriteLine();
             }
@@ -83,6 +83,18 @@ namespace ConsoleApp
             return File.ReadAllText(csvPath);
         }
 
+        static string LoadMasteryCsv()
+        {
+            var csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "mastery_levels.csv");
+            if (!File.Exists(csvPath))
+                csvPath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "mastery_levels.csv");
+            if (!File.Exists(csvPath))
+                csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "doc", "mastery_levels.csv");
+            if (!File.Exists(csvPath))
+                return null;
+            return File.ReadAllText(csvPath);
+        }
+
         static void RunAutoTest()
         {
             Console.WriteLine("=== 자동 테스트 모드 ===");
@@ -93,7 +105,7 @@ namespace ConsoleApp
             var time = new FakeTimeProvider();
             var context = new GameContext(random, time, _swordTable);
             _engine = GameEngine.Create(new PlayerData(), context);
-            _engine.OnEvent += HandleEvent;
+            _engine.OnEvent += evt => { }; // Silent mode for autotest
 
             Console.WriteLine($"초기 상태: 골드={_engine.State.PlayerData.Gold}G, 검={_engine.State.CurrentSword.Name}");
             Console.WriteLine();
@@ -197,121 +209,5 @@ namespace ConsoleApp
             Console.WriteLine("=== 테스트 완료 ===");
         }
 
-        static void PrintStatus()
-        {
-            var state = _engine.State;
-            var sword = state.CurrentSword;
-            var level = state.CurrentLevel;
-            var gold = state.PlayerData.Gold;
-            var stats = state.PlayerData.Stats;
-
-            Console.WriteLine("─────────────────────────────────");
-            var levelStr = level > 0 ? $"+{level} " : "";
-            Console.WriteLine($"  검: {levelStr}{sword.Name} ({sword.Theme})");
-            Console.WriteLine($"  골드: {gold:N0}G");
-
-            if (level < _swordTable.MaxLevel)
-            {
-                var next = _swordTable.GetSword(level + 1);
-                var rateStr = level + 1 <= 14 ? $"{next.SuccessRate * 100:F1}%" : "???";
-                Console.WriteLine($"  다음 강화: {rateStr} / {next.EnhanceCost:N0}G");
-            }
-            else
-            {
-                Console.WriteLine("  *** 최고 단계 달성! ***");
-            }
-
-            if (level > 0)
-            {
-                Console.WriteLine($"  판매가: {sword.SellPrice:N0}G (회수율 {sword.ReturnRate * 100:F0}%)");
-            }
-
-            Console.WriteLine($"  통계: 최고+{stats.HighestEnhanceLevel} | 파괴 {stats.TotalDestroys}회 | 시도 {stats.TotalEnhanceAttempts}회");
-
-            if (stats.CurrentConsecutiveSuccess > 1)
-                Console.WriteLine($"  🔥 연속 성공 {stats.CurrentConsecutiveSuccess}회!");
-            if (stats.CurrentConsecutiveFail > 1)
-                Console.WriteLine($"  💀 연속 파괴 {stats.CurrentConsecutiveFail}회...");
-        }
-
-        static void PrintMenu()
-        {
-            var state = _engine.State;
-            Console.WriteLine("─────────────────────────────────");
-
-            if (state.PendingAdProtection)
-            {
-                Console.WriteLine("  [3] 파괴 확정 (나무검으로 리셋)");
-            }
-            else
-            {
-                if (state.CurrentLevel < _swordTable.MaxLevel)
-                    Console.WriteLine("  [1] 강화");
-                if (state.CurrentLevel > 0)
-                    Console.WriteLine("  [2] 판매");
-            }
-
-            Console.WriteLine("  [Q] 종료");
-            Console.Write("  > ");
-        }
-
-        static void HandleEvent(GameEvent evt)
-        {
-            switch (evt)
-            {
-                case EnhanceSuccessEvent e:
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"  ★ 강화 성공! +{e.PrevLevel} → +{e.NewLevel} {e.NewSwordName}");
-                    Console.ResetColor();
-                    break;
-
-                case EnhanceFailEvent e when e.Destroyed:
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"  ✕ 파괴! +{e.DestroyedLevel} {e.DestroyedSwordName}");
-                    if (e.DestroyedLevel > 0)
-                    {
-                        var nextSword = _swordTable.GetSword(e.DestroyedLevel + 1);
-                        if (nextSword != null)
-                            Console.WriteLine($"    성공했다면 {nextSword.SellPrice:N0}G 였는데...");
-                    }
-                    Console.ResetColor();
-                    break;
-
-                case EnhanceFailEvent e when !e.Destroyed:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine($"  ◆ 보호! 강화 실패했지만 파괴를 막았습니다.");
-                    Console.ResetColor();
-                    break;
-
-                case SellEvent e:
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"  $ 판매! +{e.SoldLevel} {e.SoldSwordName} → {e.GoldGained:N0}G 획득");
-                    Console.ResetColor();
-                    break;
-
-                case DestroyConfirmedEvent e:
-                    Console.WriteLine($"  나무검으로 돌아갑니다...");
-                    break;
-
-                case CommandRejectedEvent e:
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    var reason = e.Reason switch
-                    {
-                        "insufficient_gold" => "골드가 부족합니다!",
-                        "cannot_sell_wooden_sword" => "나무검은 판매할 수 없습니다.",
-                        "max_level_reached" => "이미 최고 단계입니다!",
-                        "pending_ad_protection" => "파괴 처리를 먼저 완료해주세요.",
-                        "no_pending_destruction" => "파괴 대기 상태가 아닙니다.",
-                        _ => e.Reason
-                    };
-                    Console.WriteLine($"  [{reason}]");
-                    Console.ResetColor();
-                    break;
-
-                case GoldChangeEvent:
-                    // Handled by status display
-                    break;
-            }
-        }
     }
 }
