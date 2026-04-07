@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- GameCore sources (same as CuiApp) -->
+    <Compile Include="..\..\Project\Assets\Scripts\GameCore\**\*.cs" LinkBase="GameCore" />
+    <!-- CuiApp sources (repositories only, no Program.cs) -->
+    <Compile Include="..\CuiApp\Repositories\**\*.cs" LinkBase="CuiApp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\doc\swords.csv" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\doc\mastery_levels.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
