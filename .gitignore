@@ -33,6 +33,10 @@
 Thumbs.db
 desktop.ini
 
+# .NET / ConsoleApp
+ConsoleApp/bin/
+ConsoleApp/obj/
+
 # Claude Code
 .claude/settings.local.json
 
