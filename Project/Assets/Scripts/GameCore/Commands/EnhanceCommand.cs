@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using GameCore.Events;
 using GameCore.Logic;
 using GameCore.Models;
@@ -52,8 +53,9 @@ namespace GameCore.Commands
                 s = failResult.NewState;
                 events.AddRange(failResult.Events);
 
-                // P1: no ad protection system, always finalize destroy immediately
-                if (!s.PendingAdProtection && !s.HasActiveProtection)
+                // Finalize destroy only if actually destroyed and not waiting for ad
+                var failEvt = failResult.Events.OfType<EnhanceFailEvent>().FirstOrDefault();
+                if (failEvt != null && failEvt.Destroyed && !s.PendingAdProtection)
                 {
                     var destroyResult = FinalizeDestroy(s, context);
                     s = destroyResult.NewState;
