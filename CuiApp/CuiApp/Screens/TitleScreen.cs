@@ -17,14 +17,37 @@ public class TitleScreen : IScreen
     {
         Console.WriteLine();
         Console.WriteLine();
-        _r.DrawBox([
-            "",
-            "        ⚔  검 강 화  ⚔        ",
-            "",
-            "   [ S ] 게임 시작             ",
-            "   [ Q ] 종료                  ",
-            "",
-        ]);
+
+        var pd = state.PlayerData;
+        var hasSave = !pd.IsFirstRun;
+
+        if (hasSave)
+        {
+            var sword = state.CurrentSword;
+            _r.DrawBox([
+                "",
+                "        ⚔  검 강 화  ⚔        ",
+                "",
+                $"   ▸ {sword.Name} +{state.CurrentLevel}",
+                $"   ▸ {pd.Gold:N0}G | 파편 {pd.Fragments}개",
+                $"   ▸ 최고 +{pd.Stats.HighestEnhance}",
+                "",
+                "   [ S ] 이어하기             ",
+                "   [ Q ] 종료                  ",
+                "",
+            ]);
+        }
+        else
+        {
+            _r.DrawBox([
+                "",
+                "        ⚔  검 강 화  ⚔        ",
+                "",
+                "   [ S ] 새 게임               ",
+                "   [ Q ] 종료                  ",
+                "",
+            ]);
+        }
     }
 
     public string? HandleInput(char key, GameEngine engine, GameContext context)

@@ -88,7 +88,22 @@ while (true)
 // Final save
 repo.Save(engine.State.PlayerData);
 
+// Session report
 renderer.Clear();
+renderer.PrintCenter("=== 세션 리포트 ===", ConsoleColor.Cyan);
+Console.WriteLine();
+
+if (eventRenderer.SessionEnhances > 0)
+{
+    renderer.PrintLine($"  강화 시도: {eventRenderer.SessionEnhances}회");
+    renderer.PrintLine($"  파괴: {eventRenderer.SessionDestroys}회");
+    if (eventRenderer.SessionHighestLevel > 0)
+        renderer.PrintLine($"  이번 세션 최고: +{eventRenderer.SessionHighestLevel}");
+    var goldSign = eventRenderer.SessionGoldDelta >= 0 ? "+" : "";
+    renderer.PrintLine($"  골드 변동: {goldSign}{eventRenderer.SessionGoldDelta:N0}G");
+    Console.WriteLine();
+}
+
 renderer.PrintCenter("저장 완료. 안녕히!", ConsoleColor.Cyan);
 try { Console.CursorVisible = true; } catch (IOException) { }
 Console.WriteLine();
