@@ -5,7 +5,7 @@
 - [ ] P0-1. Unity 프로젝트 생성
 - [ ] P0-2. `GameCore` 순수 C# 어셈블리 생성 (Unity 의존성 없음) + Assembly Definition (`GameCore.asmdef`) 작성. **Logic 클래스는 `internal`로 선언** — Models, Commands, Events, Engine, Repositories, Data, Util만 public. 구현계획서 "Assembly Definition" 참조
 - [ ] P0-3. `App` Unity 앱 어셈블리 생성 (`App.asmdef`, `GameCore` 참조)
-- [ ] P0-4. 기본 추상화 인터페이스 작성 (`RandomProvider`, `TimeProvider`, `StorageRepository`)
+- [ ] P0-4. 기본 추상화 인터페이스 작성 (`RandomProvider`, `TimeProvider`, `StorageRepository`) + `GameContext` 클래스 작성 (`IsAdSystemEnabled` 플래그 포함 — P1에서 false, P2에서 true로 전환. false일 때 광고 보호권 대기 상태 진입 방지)
 - [ ] P0-5. 커맨드/이벤트 기본 인터페이스 작성 (`Command`(execute + validate), `CommandResult`, `GameEvent`, `CommandRejectedEvent`, `LogicResult`)
 - [ ] P0-6. `GameEngine` 뼈대 작성 (dispatch → validate → 실행 → 이벤트 발행). **dispatch 내부에서 `command.validate()` 호출 → 실패 시 `CommandRejectedEvent` 발행 후 종료**. 구현계획서 "GameEngine" 및 "커맨드 유효성 검증" 참조
 - [ ] P0-7. `Sword` 모델 작성 + `swords.csv` 파서 (`SwordDataLoader`) 작성 + 테스트. 모델 필드는 구현계획서 "swords.csv 컬럼 → Sword 모델 매핑" 참조. **Sword 모델이 파서의 반환 타입이므로 반드시 함께 작성**
@@ -31,6 +31,7 @@
 
 - [ ] P1-8. `EnhanceCommand` — 강화 시도
 - [ ] P1-9. `SellCommand` — 현재 검 판매
+- [ ] P1-9a. `EmergencyFundCommand` — P1 전용 긴급 지원금 (골드 < 강화비용 && 나무검 상태일 때 200G 지급). P2에서 광고 골드로 대체 후 제거. `EconomyLogic.AddGold(200, "emergency_fund")` 사용
 
 ### 이벤트
 
@@ -46,6 +47,8 @@
 - [ ] P1-15a. 통합 흐름 테스트 — Command → GameEngine.dispatch() → Event 발행 end-to-end 검증. EnhanceCommand로 성공/실패 시나리오, SellCommand로 판매 시나리오를 GameEngine 경유로 실행하여 올바른 Event가 broadcast 스트림에 발행되는지 확인
 - [ ] P1-15b. 결정론 테스트 — 같은 시드 + 같은 커맨드 시퀀스를 2회 실행하여 동일한 최종 GameState가 나오는지 검증. 리플레이 구현은 P3이지만, 결정론적 실행 보장은 P1부터 반드시 지켜야 함. `FakeRandomProvider(seed)` + `FakeTimeProvider(fixedTime)` + 동일 커맨드 10~20개 시퀀스를 2회 실행 → 최종 state 동일성 assert
 - [ ] P1-15c. 커맨드 유효성 검증 테스트 — 골드 부족 시 EnhanceCommand reject, 나무검 SellCommand reject, pendingAdProtection 상태에서 EnhanceCommand/SellCommand reject, CommandRejectedEvent 발행 확인
+- [ ] P1-15d. P1 광고 비활성 안전 테스트 — `GameContext.IsAdSystemEnabled = false`일 때, 강화 실패 시 `pendingAdProtection`이 항상 false인지 검증. `EnhanceFailEvent.adProtectionAvailable`도 false인지 확인
+- [ ] P1-15e. 긴급 지원금 테스트 — 골드 < 강화비용 && 나무검 상태에서 EmergencyFundCommand 실행 → 200G 지급. 나무검이 아닌 상태에서는 reject
 
 ### 연출 모듈
 
@@ -57,9 +60,9 @@
 ### 뷰
 
 - [ ] P1-20. `TitleView.cs` — 타이틀 화면 (게임 시작 버튼, Unity UI)
-- [ ] P1-21. `EnhanceView.cs` — 강화 메인 화면 (검 표시, 강화/판매 버튼, 골드, 확률 표시: +14이하 숫자, +15이상 "???"). 이벤트 수신 시 `IEnhanceAnimationController`에 위임하여 연출 재생
-- [ ] P1-22. 하단 네비게이션 뼈대 (대장간/공방/업적 탭, Unity UI). 공방/업적은 "준비 중" placeholder 표시
-- [ ] P1-23. `GameBinding.cs` — GameEngine ↔ Unity 연결 (VContainer 또는 수동 DI). P1에서는 InMemoryRepository 사용. 자체 로컬 저장 구현 금지
+- [ ] P1-21. `EnhanceView.cs` — 강화 메인 화면. 확률/비용은 **강화 버튼 내부에만 표시** (이중 표시 금지). +14이하 숫자, +15이상 "???". 이벤트 수신 시 `IEnhanceAnimationController`에 위임. 연출 중 `ScreenManager.IsAnimating = true`로 탭 전환 차단. 파괴 도발 메시지는 **파괴된 검(현재 레벨)**의 `SellPrice` 참조
+- [ ] P1-22. `ScreenManager.cs` + `BottomNavBar.cs` — **2계층 전환 구조**: 화면 전환(Title↔Main) + 탭 전환(Enhance/Workshop/Achievement). BottomNavBar.OnTabSelected → ScreenManager.OnTabSelected 연결. 연출/팝업 중 `SetInteractable(false)`로 차단. ui-guide.md "화면 전환 매니저" 참조
+- [ ] P1-23. `GameBinding.cs` — GameEngine ↔ Unity 연결 (VContainer 또는 수동 DI). P1에서는 InMemoryRepository 사용. `GameContext.IsAdSystemEnabled = false`로 설정. 자체 로컬 저장 구현 금지
 
 ---
 

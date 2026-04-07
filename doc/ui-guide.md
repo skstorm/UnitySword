@@ -111,32 +111,94 @@ GameScene
 
 ### 화면 전환 매니저
 
+화면 전환은 **2계층**으로 분리한다:
+- **화면 전환 (Screen)**: TitlePanel ↔ MainPanel — 완전히 다른 화면 간 전환
+- **탭 전환 (Tab)**: MainPanel 내부에서 EnhancePanel / WorkshopPanel / AchievementPanel 간 전환
+
+이 구분이 필요한 이유: 하이어라키에서 EnhancePanel 등은 MainPanel의 **자식**이므로,
+TitlePanel→EnhancePanel 직접 전환 시 부모(MainPanel)가 비활성이면 자식도 보이지 않는다.
+
 ```csharp
 public class ScreenManager : MonoBehaviour
 {
+    // --- 화면 레벨 (Screen) ---
     [SerializeField] private GameObject _titlePanel;
+    [SerializeField] private GameObject _mainPanel;  // EnhancePanel 등의 부모
+
+    // --- 탭 레벨 (Tab, MainPanel 내부) ---
     [SerializeField] private GameObject _enhancePanel;
     [SerializeField] private GameObject _workshopPanel;
     [SerializeField] private GameObject _achievementPanel;
 
-    private GameObject _currentPanel;
+    [SerializeField] private BottomNavBar _bottomNavBar;
 
-    public void ShowTitle() => SwitchTo(_titlePanel);
-    public void ShowEnhance() => SwitchTo(_enhancePanel);
-    public void ShowWorkshop() => SwitchTo(_workshopPanel);
-    public void ShowAchievement() => SwitchTo(_achievementPanel);
+    private GameObject _currentTab;
+    private bool _isAnimating;  // 연출 재생 중 여부
 
-    private void SwitchTo(GameObject panel)
+    /// 연출 재생 중 탭 전환 차단용
+    public bool IsAnimating
     {
-        _currentPanel?.SetActive(false);
-        panel.SetActive(true);
-        _currentPanel = panel;
+        get => _isAnimating;
+        set
+        {
+            _isAnimating = value;
+            _bottomNavBar.SetInteractable(!value);
+        }
+    }
+
+    private void Start()
+    {
+        // BottomNavBar ↔ ScreenManager 연결
+        _bottomNavBar.OnTabSelected += OnTabSelected;
+    }
+
+    // --- 화면 전환 ---
+
+    public void ShowTitle()
+    {
+        _mainPanel.SetActive(false);
+        _bottomNavBar.gameObject.SetActive(false);
+        _titlePanel.SetActive(true);
+    }
+
+    public void ShowMain()
+    {
+        _titlePanel.SetActive(false);
+        _mainPanel.SetActive(true);
+        _bottomNavBar.gameObject.SetActive(true);
+        SwitchTab(_enhancePanel, 0);  // 대장간부터 시작
+    }
+
+    // --- 탭 전환 (MainPanel 내부) ---
+
+    private void OnTabSelected(int index)
+    {
+        if (_isAnimating) return;  // 연출 중 탭 전환 차단
+
+        var target = index switch
+        {
+            0 => _enhancePanel,
+            1 => _workshopPanel,
+            2 => _achievementPanel,
+            _ => _enhancePanel
+        };
+        SwitchTab(target, index);
+    }
+
+    private void SwitchTab(GameObject tab, int index)
+    {
+        _currentTab?.SetActive(false);
+        tab.SetActive(true);
+        _currentTab = tab;
+        _bottomNavBar.UpdateVisual(index);
     }
 }
 ```
 
 - 전환 시 페이드 애니메이션은 P4에서 추가 (P1은 즉시 전환)
 - 팝업은 별도 레이어에서 활성화 (메인 화면 위에 오버레이)
+- **연출 재생 중**에는 `IsAnimating = true`로 설정하여 BottomNavBar 탭 전환을 차단
+- TitlePanel과 MainPanel은 **동시에 활성화되지 않음** (항상 하나만 보임)
 
 ---
 
@@ -173,43 +235,61 @@ public class ScreenManager : MonoBehaviour
 
 ### 2. 대장간 화면 (EnhancePanel) — 핵심 화면
 
+**설계 원칙:** 검 비주얼이 화면의 주인공. 정보는 강화 버튼에 집약하여 시선 분산 최소화. P2 아이템/광고는 서랍으로 숨겨 평소 화면을 깔끔하게 유지.
+
 ```
 ┌─────────────────────────┐
-│ 💰 12,500G     🔷 파편 23 │  ← 상단 바 (골드 + 파편)
+│ 💰 12,500G              │  ← 상단 바 (골드)
 ├─────────────────────────┤
 │                         │
-│     [ 검 비주얼 ]        │  ← 검 이미지 (화면 중앙)
+│                         │
+│     [ 검 비주얼 ]        │  ← 검 이미지 (화면 중앙, 넉넉하게)
+│                         │
 │     "+12 쿠사나기"       │  ← 검 이름 + 강화 단계
 │                         │
-│   성공률: 35%  비용: 270G  │  ← 확률/비용 (검 바로 아래)
 │                         │
 ├─────────────────────────┤
-│  [🛡 부적 x2] [📜 주문서 x1] │  ← 아이템 슬롯 (P2, 적용 상태 표시)
-│  [📺 부스터 +5%]              │  ← 광고 부스터 (적용 중일 때만 표시)
-├─────────────────────────┤
-│                         │
 │  ┌─────────────────────┐│
 │  │    🔨 강 화          ││  ← 메인 버튼 (크고 눈에 띄게)
-│  │    성공률 35%         ││
+│  │  35%  ·  270G        ││  ← 확률 + 비용을 버튼 내부에 표시
 │  └─────────────────────┘│
 │                         │
-│  [💰 판매 2,800G] [📦 수집] │  ← 보조 버튼 (작게, 수집은 +10↑)
+│  [ 💰 판매 2,800G ]  [ 📦 수집 ]│  ← 보조 버튼 (동등한 크기)
 │                         │
-│  [📺 골드 받기] [📺 부스터] │  ← 광고 버튼 (골드 부족 시 강조)
+│  ─ ─ ─ 아이템/광고 서랍 ─ ─ ─│  ← 위로 스와이프 or ▲ 탭으로 열림 (P2)
 │                         │
 ├─────────────────────────┤
 │ [대장간] [공방] [업적]    │  ← 하단 네비게이션
 └─────────────────────────┘
 ```
 
+#### 아이템/광고 서랍 (P2, 접힌 상태가 기본)
+
+```
+서랍 닫힘 (평소):
+│  ─ ─ ─ [▲ 아이템] ─ ─ ─ ─│  ← 한 줄 힌트 (보유 아이템이 있으면 아이콘 뱃지)
+
+서랍 열림 (탭/스와이프):
+│  [🛡 부적 x2] [📜 주문서 x1] │  ← 아이템 슬롯
+│  [📺 부스터 +5%] [📺 골드 200G]│  ← 광고 버튼
+│  ─ ─ ─ [▼ 접기] ─ ─ ─ ─ │
+```
+
 | 영역 | 비율 | 내용 |
 |------|------|------|
-| 상단 바 | 8% | 골드, 파편 (P2), 장인 레벨 아이콘 (P2) |
-| 검 디스플레이 | 35% | 검 이미지 + 이름 + 확률/비용 텍스트 + 강화 이펙트 영역 |
-| 아이템 슬롯 | 7% | 부적/주문서 슬롯 (P2), 광고 부스터 적용 표시 |
-| 액션 영역 | 30% | 강화 메인 버튼 (크게) + 판매/수집 보조 버튼 (작게) + 광고 버튼 |
+| 상단 바 | 6% | 골드 (파편/장인 레벨은 공방 화면에서 확인) |
+| 검 디스플레이 | **45%** | 검 이미지 + 이름 + 강화 이펙트 전용 영역 |
+| 액션 영역 | 25% | 강화 메인 버튼 (확률+비용 내장) + 판매/수집 보조 버튼 |
+| 서랍 (접힘) | 4% | 아이템/광고 서랍 힌트 (P2, P1에서는 미표시) |
 | 하단 네비 | 10% | 3탭 네비게이션 |
 | 여백 | 10% | 상하 SafeArea 패딩 |
+
+**이전 레이아웃 대비 변경점:**
+- 검 디스플레이 35% → **45%** (검 비주얼이 게임의 핵심 보상이므로 공간 확대)
+- 확률/비용 **이중 표시 제거** — 검 아래 별도 텍스트 삭제, 강화 버튼 내부에만 표시
+- 아이템 슬롯 + 광고 버튼을 **서랍(drawer)**으로 통합하여 평소 화면에서 숨김
+- 상단 바에서 파편/장인 레벨 제거 (공방 화면에서 확인 — 대장간 화면은 강화에만 집중)
+- 판매/수집 버튼을 **동등한 크기**로 변경 (전략적 선택의 무게감 동등)
 
 #### 검 디스플레이 (SwordDisplay)
 
@@ -232,7 +312,9 @@ public class SwordDisplay : MonoBehaviour
 
 #### 강화 버튼 (EnhanceButton)
 
-메인 강화 버튼은 화면에서 가장 크고 눈에 띄는 요소. 확률과 비용을 버튼 내부에 표시.
+메인 강화 버튼은 화면에서 가장 크고 눈에 띄는 요소. **확률과 비용은 이 버튼 내부에만 표시** (이중 표시 방지).
+
+최소 터치 영역: **너비 80% 화면 폭, 높이 64dp 이상**.
 
 ```csharp
 public class EnhanceButton : MonoBehaviour
@@ -244,10 +326,9 @@ public class EnhanceButton : MonoBehaviour
 
     public void UpdateInfo(int level, double rate, int cost, int gold, double bonusRate)
     {
-        // 기본 확률 표시
+        // 확률 표시 (게임 내 유일한 확률 표시 지점)
         if (level < 15)
         {
-            double totalRate = rate + bonusRate;
             _rateText.text = bonusRate > 0
                 ? $"{rate * 100:F0}% + {bonusRate * 100:F0}%"  // "35% + 5%"
                 : $"{rate * 100:F0}%";
@@ -273,23 +354,28 @@ public class EnhanceButton : MonoBehaviour
 
 | 조건 | 표시 버튼 |
 |------|----------|
-| +0 (나무검) | [강화] 만 표시 (판매/수집 불가) |
+| +0 (나무검) | [강화] + 가이드 텍스트 "강화를 시작하세요!" (판매/수집 숨김) |
 | +1 ~ +9 | [강화] [판매] |
 | +10 ~ +20 | [강화] [판매] [수집] |
-| 골드 부족 | [강화] 비활성 (회색) + [📺 골드 받기] 버튼 강조 (펄스 애니메이션) |
+| 골드 부족 | [강화] 비활성 (회색) + 서랍 자동 열림 (📺 골드 받기 강조 펄스) |
 | pendingAdProtection (P2) | 모든 버튼 비활성, 파괴 팝업 표시 |
 
-#### 광고 버튼 표시 규칙
+판매/수집 버튼 최소 터치 영역: **너비 40% 화면 폭, 높이 48dp 이상** (동등한 크기로 배치).
 
-| 버튼 | 위치 | 표시 조건 | 비고 |
-|------|------|----------|------|
-| 📺 골드 받기 | 액션 영역 하단 | 항상 표시 (골드 부족 시 강조) | 200골드 고정, 무제한 |
-| 📺 부스터 | 액션 영역 하단 | 부스터 미적용 상태일 때 표시 | +5%p, 1회용 |
+#### 아이템/광고 서랍 규칙
 
-- 광고 부스터 적용 중일 때: 부스터 버튼 대신 아이템 슬롯 영역에 "📺 부스터 +5%" 배지 표시
-- P1에서는 광고 연동 없이 버튼 UI만 배치 (탭 시 "준비 중" 토스트)
+서랍(drawer)은 P2부터 활성화. P1에서는 서랍 힌트 자체를 미표시.
 
-#### 아이템 슬롯 표시 규칙 (P2)
+**서랍 상태:**
+
+| 상태 | 표시 |
+|------|------|
+| 접힌 상태 (기본) | "[▲ 아이템]" 한 줄 힌트. 보유 아이템이 있으면 아이콘+수량 배지 |
+| 펼친 상태 | 아이템 슬롯 2개 + 광고 버튼 2개 + "[▼ 접기]" |
+| 골드 부족 시 | 서랍 **자동 열림** + "📺 골드 받기" 버튼 펄스 애니메이션 |
+| 부적/주문서 적용 중 | 서랍 접힌 상태에서도 적용 배지 표시 ("🛡 보호 ON", "📜 +5%") |
+
+**서랍 내부 — 아이템 슬롯 (P2):**
 
 | 상태 | 표시 |
 |------|------|
@@ -297,7 +383,17 @@ public class EnhanceButton : MonoBehaviour
 | 부적/주문서 보유 | 슬롯 활성, 탭하여 적용 토글 |
 | 부적 적용 중 | 🛡 아이콘 글로우 + "보호 ON" 배지 |
 | 주문서 적용 중 | 📜 아이콘 글로우 + "+5%" 배지 |
-| 부스터+주문서 동시 | 확률 표시에 "+10%" 배지 (최대치 표시) |
+| 부스터+주문서 동시 | 강화 버튼 확률 표시에 "+10%" 배지 (최대치 표시) |
+
+**서랍 내부 — 광고 버튼:**
+
+| 버튼 | 표시 조건 | 비고 |
+|------|----------|------|
+| 📺 골드 받기 | 서랍 내부에 항상 표시 | 200골드 고정, 무제한 |
+| 📺 부스터 | 부스터 미적용 상태일 때 | +5%p, 1회용 |
+
+- 광고 부스터 적용 중일 때: 부스터 버튼 숨김, 서랍 접힌 힌트에 "📺 +5%" 배지 표시
+- P1에서는 서랍 자체를 미표시 (광고/아이템 기능 없으므로)
 
 ### 3. 공방 화면 (WorkshopPanel) — P2
 
@@ -363,7 +459,9 @@ public class EnhanceButton : MonoBehaviour
 
 - P1에서는 광고 보호권이 없으므로 선택지 불필요
 - 도발 메시지는 검 디스플레이 영역 하단에 페이드 인/아웃
-- 판매가는 `SwordDataTable`에서 다음 레벨의 `SellPrice` 참조
+- 판매가는 `SwordDataTable`에서 **파괴된 검(현재 레벨)**의 `SellPrice` 참조
+  - 의미: "이 검을 팔 수 있었는데 강화 시도하다가 날렸네" (기회비용 강조)
+  - 예시: +14 듀랑달 파괴 시 → 듀랑달(+14)의 판매가 6,360G 표시
 
 **P2 (광고 보호권 추가 후):** 파괴 팝업으로 전환.
 
@@ -442,27 +540,49 @@ public class BottomNavBar : MonoBehaviour
     [SerializeField] private Color _activeColor;
     [SerializeField] private Color _inactiveColor;
 
+    private Button[] _allTabs;
+
+    /// ScreenManager가 구독하여 탭 전환을 처리
     public event Action<int> OnTabSelected;
+
+    private void Awake()
+    {
+        _allTabs = new[] { _forgeTab, _workshopTab, _achievementTab };
+    }
 
     private void Start()
     {
-        _forgeTab.onClick.AddListener(() => SelectTab(0));
-        _workshopTab.onClick.AddListener(() => SelectTab(1));
-        _achievementTab.onClick.AddListener(() => SelectTab(2));
-        SelectTab(0);
+        _forgeTab.onClick.AddListener(() => OnTabSelected?.Invoke(0));
+        _workshopTab.onClick.AddListener(() => OnTabSelected?.Invoke(1));
+        _achievementTab.onClick.AddListener(() => OnTabSelected?.Invoke(2));
     }
 
-    private void SelectTab(int index)
+    /// ScreenManager에서 호출 — 현재 활성 탭의 비주얼 갱신
+    public void UpdateVisual(int activeIndex)
     {
         for (int i = 0; i < _tabIcons.Length; i++)
-            _tabIcons[i].color = i == index ? _activeColor : _inactiveColor;
-        OnTabSelected?.Invoke(index);
+            _tabIcons[i].color = i == activeIndex ? _activeColor : _inactiveColor;
+    }
+
+    /// 연출 재생 중 / 팝업 열림 시 탭 전환 차단
+    public void SetInteractable(bool interactable)
+    {
+        foreach (var tab in _allTabs)
+            tab.interactable = interactable;
     }
 }
 ```
 
+**연결 구조:**
+```
+BottomNavBar.OnTabSelected → ScreenManager.OnTabSelected() → SwitchTab()
+ScreenManager.IsAnimating  → BottomNavBar.SetInteractable(false)
+PopupManager.OnPopupOpen   → BottomNavBar.SetInteractable(false)
+```
+
 - P1: 공방/업적 탭은 탭 가능하지만 "준비 중" placeholder 표시
 - 탭 아이콘: 대장간(망치), 공방(집), 업적(트로피)
+- 탭 최소 터치 영역: 높이 48dp 이상 (Material Design 가이드라인 준수)
 
 ---
 
@@ -724,8 +844,44 @@ public class SafeAreaPanel : MonoBehaviour
 |------|------|
 | 강화 연타 | 연출 재생 중 강화 버튼 비활성화. 연출 완료 후 재활성화 |
 | 더블 탭 방지 | 커맨드 dispatch 후 0.1초 쿨타임 |
-| 뒤로가기 (Android) | 대장간→타이틀 확인 팝업, 공방/업적→대장간 전환 |
-| 팝업 중 입력 | 팝업 외부 터치 차단 (Raycast blocker) |
+| 뒤로가기 (Android) | 아래 "Android 뒤로가기 우선순위" 참조 |
+| 팝업 중 입력 | 팝업 외부 터치 차단 (Raycast blocker) + BottomNavBar 비활성화 |
+| 연출 중 탭 전환 | `ScreenManager.IsAnimating = true` → BottomNavBar 비활성화 |
+
+#### 연출/팝업 중 입력 차단 규칙
+
+게임 상태에 따라 BottomNavBar와 액션 버튼의 활성 상태가 달라진다:
+
+| 상태 | 강화 버튼 | 판매/수집 | 광고 버튼 | BottomNavBar | 팝업 조작 |
+|------|----------|----------|----------|-------------|----------|
+| 일반 (대기) | O | O | O | O | - |
+| 연출 재생 중 | X | X | X | **X (차단)** | - |
+| 팝업 열림 | X | X | X | **X (차단)** | O |
+| pendingAdProtection (P2) | X | X | X | **X (차단)** | O (파괴 팝업) |
+
+**구현:**
+- 연출 시작 시 `ScreenManager.IsAnimating = true` → 연출 완료 시 `false`
+- 팝업 열릴 때 `BottomNavBar.SetInteractable(false)` → 팝업 닫힐 때 `true`
+- 연출 도중 Panel이 비활성화되면 Coroutine이 중단되므로, **반드시 연출 완료 후에만 탭 전환 허용**
+
+#### 연출 중 앱 백그라운드 전환 시
+
+연출 재생 중 앱이 백그라운드로 가면:
+- `OnApplicationPause(true)` 시점에 **현재 연출을 즉시 완료** (결과 상태 반영, 이펙트 스킵)
+- `OnApplicationPause(false)` 복귀 시 결과 상태가 이미 반영된 화면 표시
+- 이는 연출 Coroutine이 일시정지 상태에서 꼬이는 것을 방지
+
+#### Android 뒤로가기 우선순위
+
+Android 뒤로가기(ESC)는 아래 우선순위로 처리:
+
+| 우선순위 | 현재 상태 | 동작 |
+|---------|----------|------|
+| 1 | 팝업이 열려 있음 | 팝업 닫기 (단, 파괴 팝업은 닫기 불가 — 반드시 선택) |
+| 2 | 연출 재생 중 | 무시 (아무 동작 없음) |
+| 3 | 공방/업적 탭 | 대장간 탭으로 전환 |
+| 4 | 대장간 탭 (메인) | "게임을 종료하시겠습니까?" 확인 팝업 |
+| 5 | 타이틀 화면 | 앱 종료 |
 
 ```csharp
 // 연타 방지 — EnhanceView에서 사용
@@ -735,8 +891,11 @@ private void OnEnhanceButtonClicked()
 {
     if (_isProcessing) return;
     _isProcessing = true;
+    _screenManager.IsAnimating = true;  // BottomNavBar 차단
     _engine.Dispatch(new EnhanceCommand());
-    // 연출 완료 콜백에서 _isProcessing = false
+    // 연출 완료 콜백에서:
+    //   _isProcessing = false;
+    //   _screenManager.IsAnimating = false;
 }
 ```
 
@@ -747,14 +906,28 @@ private void OnEnhanceButtonClicked()
 ### P1 (MVP)
 
 - TitlePanel, EnhancePanel, BottomNavBar
-- SwordDisplay, GoldIndicator, EnhanceButton (신규 레이아웃 — 강화 메인 버튼 크게)
+- SwordDisplay, GoldIndicator, EnhanceButton (확률+비용을 버튼 내부에만 표시)
 - 판매 확인 팝업 (SellConfirmPopup)
 - 파괴 시 인라인 도발 메시지 + 자동 나무검 리셋 (팝업 없음)
 - BasicEnhanceAnimation (최소 연출)
-- 광고 버튼 UI 배치 (📺 골드 받기, 📺 부스터) — 탭 시 "준비 중" 토스트, 실제 연동은 P2
+- 아이템/광고 서랍 **미표시** (P2부터 활성화)
 - 공방/업적 탭은 "준비 중" placeholder
 - 사운드/진동 없음
 - 검 이미지: 단계 구간별 placeholder 색상 스프라이트 (정식 아트 전)
+
+#### P1 골드 고갈 방지
+
+P1에서는 광고 시스템이 없으므로, 골드가 바닥나면 진행 불가 데드락이 발생한다.
+이를 방지하기 위해 P1 전용 **무료 골드 지급 장치**를 마련한다:
+
+| 방법 | 조건 | 지급량 | 위치 |
+|------|------|-------|------|
+| 긴급 지원금 | 골드 < 나무검 강화비용(5G) && 현재 검 = 나무검 | 200G 즉시 지급 | 강화 버튼 영역에 "💰 지원금 받기" 버튼 표시 |
+
+- 강화/판매할 수 없는 상태(나무검 + 골드 부족)에서만 표시
+- 판매 가능한 검이 있으면 표시하지 않음 (판매로 골드 회수 유도)
+- P2에서 광고 시스템 연동 후 이 버튼은 "📺 골드 받기" 광고 버튼으로 대체
+- 지원금 버튼 탭 → `EconomyLogic.AddGold(200, "emergency_fund")` → `GoldChangeEvent` 발행
 
 ### P2
 

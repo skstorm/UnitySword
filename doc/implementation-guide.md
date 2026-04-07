@@ -233,6 +233,7 @@ View → Logic:  보기 O (상태를 읽을 수 있음)   / 조정 X (직접 조
 |--------|------|----------|
 | `EnhanceCommand` | 강화 시도 | - |
 | `SellCommand` | 현재 검 판매 | - |
+| `EmergencyFundCommand` | P1 전용 긴급 지원금 (나무검+골드 부족 시 200G) | - |
 | `CollectCommand` | 현재 검 수집 | - |
 | `UseItemCommand` | 파편 아이템 사용 (사전) | itemType (부적/주문서) |
 | `ExchangeCommand` | 파편 교환 | itemType, quantity |
@@ -262,6 +263,11 @@ public class GameContext
     public ITimeProvider Time { get; }
     public SwordDataTable SwordTable { get; }       // CSV에서 로딩된 검 데이터 테이블
     public MasteryLevelTable MasteryTable { get; }  // CSV에서 로딩된 장인 숙련도 테이블
+
+    /// 광고 시스템 활성화 여부 — P1에서는 false, P2에서 true로 전환.
+    /// false일 때 EnhanceLogic.HandleFail()에서 pendingAdProtection이 항상 false가 되어
+    /// P1에서 광고 보호권 대기 상태에 빠지는 데드락을 방지한다.
+    public bool IsAdSystemEnabled { get; }
 }
 ```
 
@@ -302,6 +308,8 @@ public class CommandRejectedEvent : GameEvent
 | `EnhanceCommand` | `pendingAdProtection=true` | `'pending_ad_protection'` |
 | `SellCommand` | currentLevel == 0 (나무검) | `'cannot_sell_wooden_sword'` |
 | `SellCommand` | `pendingAdProtection=true` | `'pending_ad_protection'` |
+| `EmergencyFundCommand` | currentLevel != 0 (나무검이 아님) | `'not_wooden_sword'` |
+| `EmergencyFundCommand` | 골드 >= 강화비용 (+1 비용) | `'has_enough_gold'` |
 | `CollectCommand` | currentLevel < 10 | `'level_too_low'` |
 | `CollectCommand` | `pendingAdProtection=true` | `'pending_ad_protection'` |
 | `UseItemCommand` | 해당 아이템 보유량 0 | `'no_item'` |
@@ -693,7 +701,15 @@ internal class EnhanceLogic
                     0, 0, false, destroyed: false)
             });
         }
-        var adAvailable = state.PlayerData.AdLimits.AdProtectionUsedToday < 2;
+
+        // 광고 보호권 사용 가능 여부 판정
+        // ⚠️ P1 주의: P1에서는 광고 시스템이 없으므로, AdLimits 초기값에 의해
+        //    adAvailable=true → pendingAdProtection=true가 되면 게임이 멈춘다.
+        //    P1에서는 AdLimits.AdProtectionUsedToday 초기값을 2 (= 일일 제한 도달)로
+        //    설정하여 adAvailable이 항상 false가 되도록 해야 한다.
+        //    또는 GameContext에 adSystemEnabled 플래그를 두어 false일 때 항상 adAvailable=false.
+        var adAvailable = context.IsAdSystemEnabled
+            && state.PlayerData.AdLimits.AdProtectionUsedToday < 2;
         var newState = state.With(pendingAdProtection: adAvailable, activeModifiers: new List<IModifier>());
         return new LogicResult(newState, new List<GameEvent>
         {
@@ -1322,7 +1338,14 @@ P1에서 `EnhanceCommand.execute()`는 순수 함수인 Logic들을 순차 호�
 
 - `activeModifiers`: P1에서는 빈 리스트, P2에서 부스터/주문서 추가 (Logic은 이미 처리하는 코드 포함)
 - `hasActiveProtection`: P1에서는 항상 false, P2에서 부적 적용 시 true로 전환
+- `GameContext.IsAdSystemEnabled`: **P1에서는 반드시 false** — false일 때 `EnhanceLogic.HandleFail()`에서 `pendingAdProtection`이 항상 false가 됨. P1에는 광고 보호권 UI가 없으므로, `pendingAdProtection=true`에 빠지면 모든 커맨드가 reject되어 게임이 멈춤.
 - 각 Logic은 순수 함수이므로 조합 순서에 끼워넣기만 하면 됨 — 콜백 연결이나 DI 재설정 불필요
+
+### P1 골드 고갈 방지
+- P1에서는 광고 골드 시스템이 없으므로, `EmergencyFundCommand`를 제공
+- 나무검 + 골드 < 강화비용(+1 = 5G) 상태에서만 실행 가능
+- 200G 즉시 지급 (초기 자금과 동일)
+- P2에서 광고 골드(`WatchAdCommand(gold)`) 연동 후 `EmergencyFundCommand`는 제거
 
 ### P1 저장 모드
 - P1에서는 `InMemoryRepository` (P0-8에서 생성) 사용
@@ -1333,6 +1356,11 @@ P1에서 `EnhanceCommand.execute()`는 순수 함수인 Logic들을 순차 호�
 - 공방 화면: "준비 중" placeholder 표시
 - 업적/칭호 화면: "준비 중" placeholder 표시
 - 하단 네비게이션은 3탭 모두 표시하되, 공방/업적은 비활성 느낌
+- 아이템/광고 서랍: P1에서는 **미표시** (광고/아이템 기능 없으므로)
+- 확률/비용은 **강화 버튼 내부에만 표시** — 검 아래 별도 텍스트 없음 (이중 표시 금지)
+- 파괴 도발 메시지의 판매가 = **파괴된 검(현재 레벨)**의 `SellPrice` (기회비용 강조)
+- `ScreenManager`는 2계층 구조: 화면 전환(Title↔Main) + 탭 전환(Enhance/Workshop/Achievement)
+- 연출 재생 중 `ScreenManager.IsAnimating = true` → BottomNavBar 탭 전환 차단
 - 화면별 레이아웃 상세, 프리팹 구조 등은 [`ui-guide.md`](./ui-guide.md) 참조
 
 ### P1 이벤트 시스템
