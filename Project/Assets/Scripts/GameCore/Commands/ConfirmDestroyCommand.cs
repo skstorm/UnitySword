@@ -21,10 +21,15 @@ namespace GameCore.Commands
             var destroyedLevel = s.CurrentLevel;
             var destroyedName = s.CurrentSword.Name;
 
-            // Fragment reward [P2에서 활성화]
-            // var fragmentBonus = context.MasteryTable.GetLevel(s.PlayerData.Mastery.Level).FragmentBonus;
-            // var fragResult = new FragmentLogic().GiveFragments(s, destroyedLevel, fragmentBonus);
-            // s = fragResult.NewState; events.AddRange(fragResult.Events);
+            // Fragment reward
+            if (context.MasteryTable != null)
+            {
+                var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
+                var fragResult = new FragmentLogic().GiveFragments(s, destroyedLevel,
+                    fragmentBonus, context.SwordTable);
+                s = fragResult.NewState;
+                events.AddRange(fragResult.Events);
+            }
 
             // Reset to wooden sword
             s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);

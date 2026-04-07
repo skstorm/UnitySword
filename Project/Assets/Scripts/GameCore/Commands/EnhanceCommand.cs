@@ -26,7 +26,7 @@ namespace GameCore.Commands
             var events = new List<GameEvent>();
             var s = state;
 
-            // 1. Calculate enhance cost
+            // 1. Calculate enhance cost (with mastery discount)
             var cost = GetEnhanceCost(s, context);
 
             // 2. Spend gold
@@ -63,9 +63,13 @@ namespace GameCore.Commands
                 }
             }
 
-            // 5. Mastery exp +1 [P2에서 활성화]
-            // var masteryResult = new MasteryLogic().AddExp(s, context.MasteryTable);
-            // s = masteryResult.NewState; events.AddRange(masteryResult.Events);
+            // 5. Mastery exp +1
+            if (context.MasteryTable != null)
+            {
+                var masteryResult = new MasteryLogic().AddExp(s, context.MasteryTable);
+                s = masteryResult.NewState;
+                events.AddRange(masteryResult.Events);
+            }
 
             return new CommandResult(s, events);
         }
@@ -75,10 +79,15 @@ namespace GameCore.Commands
             var events = new List<GameEvent>();
             var s = state;
 
-            // Fragment reward [P2에서 활성화]
-            // var fragmentBonus = context.MasteryTable.GetLevel(s.PlayerData.Mastery.Level).FragmentBonus;
-            // var fragResult = new FragmentLogic().GiveFragments(s, s.CurrentLevel, fragmentBonus);
-            // s = fragResult.NewState; events.AddRange(fragResult.Events);
+            // Fragment reward
+            if (context.MasteryTable != null)
+            {
+                var fragmentBonus = new MasteryLogic().GetFragmentBonus(s, context.MasteryTable);
+                var fragResult = new FragmentLogic().GiveFragments(s, state.CurrentLevel,
+                    fragmentBonus, context.SwordTable);
+                s = fragResult.NewState;
+                events.AddRange(fragResult.Events);
+            }
 
             s = new GameSessionLogic().ResetToWoodenSword(s, context.SwordTable);
             events.Add(new DestroyConfirmedEvent(state.CurrentLevel, state.CurrentSword.Name));
@@ -88,7 +97,15 @@ namespace GameCore.Commands
         private int GetEnhanceCost(GameState state, GameContext context)
         {
             var targetSword = context.SwordTable.GetSword(state.CurrentLevel + 1);
-            return targetSword?.EnhanceCost ?? 0;
+            var baseCost = targetSword?.EnhanceCost ?? 0;
+
+            if (context.MasteryTable != null)
+            {
+                var discount = new MasteryLogic().GetCostDiscount(state, context.MasteryTable);
+                baseCost = (int)(baseCost * (1.0 - discount));
+            }
+
+            return baseCost;
         }
     }
 }
