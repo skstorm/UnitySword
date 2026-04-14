@@ -6,6 +6,7 @@ using GameCore.Engine;
 using GameCore.Events;
 using GameCore.Models;
 using GameCore.Util;
+using GameApp;
 
 namespace ConsoleApp
 {

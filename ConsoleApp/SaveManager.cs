@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using GameCore.Models;
 
-namespace ConsoleApp
+namespace GameApp
 {
     /// <summary>
     /// 파일 시스템 기반 PlayerData 저장/로드 관리자.

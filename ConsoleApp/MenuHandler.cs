@@ -3,6 +3,7 @@ using GameCore.Commands;
 using GameCore.Data;
 using GameCore.Engine;
 using GameCore.Models;
+using GameApp;
 
 namespace ConsoleApp
 {

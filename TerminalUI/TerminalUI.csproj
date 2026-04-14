@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="..\Project\Assets\Scripts\GameCore\**\*.cs" LinkBase="GameCore" />
+    <Compile Include="..\ConsoleApp\SaveManager.cs" Link="SaveManager.cs" />
   </ItemGroup>
 
   <ItemGroup>

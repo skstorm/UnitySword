@@ -6,6 +6,7 @@ using GameCore.Engine;
 using GameCore.Events;
 using GameCore.Models;
 using Spectre.Console;
+using GameApp;
 
 namespace TerminalUI
 {
